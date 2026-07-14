@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-07-14T01:44:06.085Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "total": 3,
+    "passed": 0,
+    "failed": 2,
+    "skipped": 1
+  },
+  "results": [
+    {
+      "title": "GET /api/products - exact",
+      "endpoint": "/api/products",
+      "method": "GET",
+      "status": "failed",
+      "durationMs": 83,
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"products\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m[]\u001b[39m"
+    },
+    {
+      "title": "POST /api/products - exact",
+      "endpoint": "/api/products",
+      "method": "POST",
+      "status": "failed",
+      "durationMs": 540,
+      "error": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"id\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"attributes\": {\"batteryLife\": \"20 hours\", \"color\": \"Black\", \"weight\": \"250g\"}, \"brand\": \"SoundMax\", \"category\": \"Electronics\", \"description\": \"Noise-cancelling over-ear headphones with long battery life.\", \"name\": \"Wireless Bluetooth Headphones\", \"price\": 89.99, \"sku\": \"WH-1200-BT\", \"stock\": 150}\u001b[39m"
+    },
+    {
+      "title": "PUT /api/products - none",
+      "endpoint": "/api/products",
+      "method": "PUT",
+      "status": "skipped",
+      "durationMs": 0
+    }
+  ]
+}

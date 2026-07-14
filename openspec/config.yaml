@@ -1,0 +1,66 @@
+schema: spec-driven
+
+context: |
+  Stack: TypeScript, NestJS, Angular, Nx monorepo, Playwright, ts-morph, Zod, Pino, Commander, SQLite (MVP)
+  Architecture: Clean/Hexagonal, modular monolith, SOLID, no framework coupling in domain layer
+  Apps: api (NestJS), web (Angular), cli (Commander), mcp-server, worker
+  Libs: core/domain, application, analyzers (angular/nestjs/ts), ai-orchestrator, playwright-adapter
+  Testing: Vitest (unit/integration, to configure Day 1), Playwright (E2E), strict TypeScript, no any
+  Style: Prettier + ESLint via Nx defaults, Pino structured logs, ADRs for architecture decisions
+  Persistence: SQLite MVP → PostgreSQL, test artifacts in .qa/ dir per analyzed project
+  AI: Provider-agnostic via AiProvider interface, Zod validation on all AI output, confidence scoring
+  Compatibility: Windows/Linux/macOS — no OS-specific paths, use path.join, cross-platform commands
+  Monorepo: Nx project boundaries enforced, no circular deps, domain must not import from NestJS
+
+strict_tdd: true  # Vitest configured on Day 1. All 5 projects have test targets.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected apps and libs in Nx workspace
+    - Assess impact on existing domain contracts and interfaces
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Reference actual domain entities and contracts (no invented endpoints or fields)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions as ADRs in docs/decisions/
+    - Keep domain layer free from infrastructure dependencies (NestJS, Angular, DB)
+  tasks:
+    - Group tasks by phase (infrastructure, domain, application, adapters, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+    - Always include test tasks per implementation phase
+  apply:
+    - Follow Nx monorepo conventions and enforce project boundaries
+    - No any types — strict TypeScript throughout
+    - No circular dependencies between libs
+    - Domain/core must not depend on NestJS decorators or Angular
+  verify:
+    - Run nx run-many --target=test for unit/integration tests
+    - Run Playwright for E2E scenarios
+    - Run nx run-many --target=lint for quality checks
+    - Compare every implementation against its spec scenarios
+  archive:
+    - Warn before merging destructive deltas (large removals)
+    - Register ADR when architecture decision changes or supersedes prior one
+
+testing:
+  strict_tdd: true
+  note: "Vitest configured Day 1. Angular uses pool:forks. All 5 projects have explicit test targets."
+  detected: "2026-07-12"
+  test_runner:
+    framework: "Vitest (via @nx/vite:test + @analogjs/vitest-angular for web)"
+    command: "npx nx run-many -t test --all"
+  layers:
+    unit: { available: true, tool: "Vitest 3.2.7 + @analogjs/vitest-angular 1.19.4" }
+    integration: { available: false, tool: "Vitest + @testing-library (to configure)" }
+    e2e: { available: true, tool: "Playwright (web-e2e scaffolded by Angular generator)" }
+  coverage:
+    available: true
+    command: "npx nx run-many -t test --all -- --coverage"
+  quality:
+    linter: { available: true, command: "npx nx run-many -t lint --all" }
+    type_checker: { available: true, command: "npx nx run-many -t typecheck --all" }
+    formatter: { available: false, command: "prettier --check . (to configure)" }

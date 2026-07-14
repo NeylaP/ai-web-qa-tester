@@ -1,0 +1,26 @@
+{
+  "name": "core-application",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "core-application/src",
+  "projectType": "library",
+  "tags": ["type:application", "scope:core"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../coverage/core-application"
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/core-application",
+        "main": "core-application/src/index.ts",
+        "tsConfig": "core-application/tsconfig.lib.json",
+        "assets": ["core-application/*.md"]
+      }
+    }
+  }
+}

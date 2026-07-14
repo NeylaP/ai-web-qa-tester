@@ -1,0 +1,26 @@
+{
+  "name": "playwright-adapter",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "playwright-adapter/src",
+  "projectType": "library",
+  "tags": ["type:infrastructure", "scope:core"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../coverage/playwright-adapter"
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/playwright-adapter",
+        "main": "playwright-adapter/src/index.ts",
+        "tsConfig": "playwright-adapter/tsconfig.lib.json",
+        "assets": ["playwright-adapter/*.md"]
+      }
+    }
+  }
+}

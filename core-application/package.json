@@ -1,0 +1,12 @@
+{
+  "name": "@ai-web-qa-tester/core-application",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "dependencies": {
+    "@ai-web-qa-tester/core-domain": "*",
+    "tslib": "^2.3.0"
+  }
+}

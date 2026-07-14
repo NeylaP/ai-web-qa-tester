@@ -1,0 +1,13 @@
+{
+  "frontendPath": "C:\\Users\\BASCULA\\Documents\\Personal Projects\\ai-web-qa-tester\\lab\\frontend",
+  "backendPath": "C:\\Users\\BASCULA\\Documents\\Personal Projects\\ai-web-qa-tester\\lab\\backend",
+  "frontend": {
+    "framework": "angular",
+    "version": "20.0.0"
+  },
+  "backend": {
+    "framework": "nestjs",
+    "version": "11.0.0"
+  },
+  "scannedAt": "2026-07-12T19:30:20.777Z"
+}

@@ -1,0 +1,101 @@
+{
+  "analyzedAt": "2026-07-12T21:44:41.019Z",
+  "angular": {
+    "components": [
+      {
+        "name": "AppComponent",
+        "selector": "app-root",
+        "filePath": "src/app.component.ts"
+      },
+      {
+        "name": "ProductDetailComponent",
+        "selector": "app-product-detail",
+        "filePath": "src/products/product-detail.component.ts"
+      },
+      {
+        "name": "ProductsComponent",
+        "selector": "app-products",
+        "filePath": "src/products/products.component.ts"
+      }
+    ],
+    "services": [
+      {
+        "name": "ProductsService",
+        "filePath": "src/products/products.service.ts",
+        "httpCalls": [
+          {
+            "method": "GET",
+            "urlPattern": "/api/products"
+          },
+          {
+            "method": "POST",
+            "urlPattern": "/api/products"
+          },
+          {
+            "method": "PUT",
+            "urlPattern": "/api/products"
+          }
+        ]
+      }
+    ],
+    "routes": [
+      "",
+      ":id"
+    ]
+  },
+  "nestjs": {
+    "controllers": [
+      {
+        "name": "ProductsController",
+        "basePath": "products",
+        "filePath": "src/products/products.controller.ts",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "products"
+          },
+          {
+            "method": "GET",
+            "path": "products/:id"
+          },
+          {
+            "method": "POST",
+            "path": "products"
+          },
+          {
+            "method": "PATCH",
+            "path": "products/:id"
+          },
+          {
+            "method": "DELETE",
+            "path": "products/:id"
+          }
+        ]
+      }
+    ],
+    "services": [
+      {
+        "name": "ProductsService",
+        "filePath": "src/products/products.service.ts"
+      }
+    ],
+    "dtos": [
+      {
+        "name": "CreateProductDto",
+        "filePath": "src/products/dto/create-product.dto.ts",
+        "fields": [
+          "name",
+          "price"
+        ]
+      },
+      {
+        "name": "UpdateProductDto",
+        "filePath": "src/products/dto/update-product.dto.ts",
+        "fields": [
+          "name",
+          "price"
+        ]
+      }
+    ]
+  }
+}

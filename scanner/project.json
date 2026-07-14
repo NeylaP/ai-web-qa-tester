@@ -1,0 +1,26 @@
+{
+  "name": "scanner",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "scanner/src",
+  "projectType": "library",
+  "tags": ["type:infrastructure", "scope:core"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../coverage/scanner"
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/scanner",
+        "main": "scanner/src/index.ts",
+        "tsConfig": "scanner/tsconfig.lib.json",
+        "assets": ["scanner/*.md"]
+      }
+    }
+  }
+}

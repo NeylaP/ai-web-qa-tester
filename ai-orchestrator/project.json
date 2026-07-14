@@ -1,0 +1,26 @@
+{
+  "name": "ai-orchestrator",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "ai-orchestrator/src",
+  "projectType": "library",
+  "tags": ["type:infrastructure", "scope:core"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vite:test",
+      "outputs": ["{options.reportsDirectory}"],
+      "options": {
+        "reportsDirectory": "../coverage/ai-orchestrator"
+      }
+    },
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/ai-orchestrator",
+        "main": "ai-orchestrator/src/index.ts",
+        "tsConfig": "ai-orchestrator/tsconfig.lib.json",
+        "assets": ["ai-orchestrator/*.md"]
+      }
+    }
+  }
+}
