@@ -1,0 +1,47 @@
+name: QA Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Install lab/backend dependencies
+        run: npm install --prefix lab/backend
+
+      - name: Build CLI
+        run: npx nx run cli:build:production
+
+      - name: Run QA pipeline
+        # Add --enrich flag and set OPENAI_API_KEY secret to enable AI enrichment
+        run: |
+          node dist/cli/main.js pipeline \
+            --backend lab/backend \
+            --base-url http://localhost:3000
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-test-report
+          path: lab/backend/.qa/test-report.html
+          if-no-files-found: warn

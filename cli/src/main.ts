@@ -5,6 +5,7 @@ import {
   BuildRouteMapUseCase, RouteMapError,
   GenerateTestsUseCase, GenerateTestsError,
   RunTestsUseCase, RunTestsError,
+  ExportReportUseCase, ExportReportError,
 } from '@ai-web-qa-tester/core-application';
 import {
   NodeFileSystemAdapter,
@@ -18,7 +19,7 @@ import {
   RouteMapReader,
   NodeProcessManager,
 } from '@ai-web-qa-tester/scanner';
-import { PlaywrightSpecWriter, PlaywrightTestRunner } from '@ai-web-qa-tester/playwright-adapter';
+import { PlaywrightSpecWriter, PlaywrightTestRunner, HtmlReportGenerator } from '@ai-web-qa-tester/playwright-adapter';
 import { AnthropicProvider, OpenAiProvider, AiEnricher } from '@ai-web-qa-tester/ai-orchestrator';
 
 const program = new Command();
@@ -186,6 +187,116 @@ program
       } else {
         console.error('Unexpected error:', err);
       }
+      process.exit(1);
+    }
+  });
+
+program
+  .command('report')
+  .description('Generate an HTML report from a test-report.json')
+  .requiredOption('--backend <path>', 'path to NestJS backend project')
+  .option('--output <path>', 'output path for the HTML file (default: <backend>/.qa/test-report.html)')
+  .action(async (opts: { backend: string; output?: string }) => {
+    const useCase = new ExportReportUseCase(
+      new NodeFileSystemAdapter(),
+      new HtmlReportGenerator(),
+    );
+
+    try {
+      const outputPath = useCase.execute({
+        backendPath: opts.backend,
+        outputPath: opts.output,
+      });
+      console.log(`HTML report written to: ${outputPath}`);
+    } catch (err) {
+      if (err instanceof ExportReportError) {
+        console.error(`Report failed: ${err.message}`);
+      } else {
+        console.error('Unexpected error:', err);
+      }
+      process.exit(1);
+    }
+  });
+
+program
+  .command('pipeline')
+  .description('Run the full QA pipeline: [scan] → [analyze] → map → generate → run → report')
+  .requiredOption('--backend <path>', 'path to NestJS backend project')
+  .requiredOption('--base-url <url>', 'base URL where the server will listen')
+  .option('--frontend <path>', 'path to Angular frontend project (enables scan + analyze steps)')
+  .option('--enrich', 'enrich tests with AI (requires OPENAI_API_KEY or ANTHROPIC_API_KEY)')
+  .option('--start-command <cmd>', 'command to start the backend')
+  .action(async (opts: {
+    backend: string;
+    baseUrl: string;
+    frontend?: string;
+    enrich?: boolean;
+    startCommand?: string;
+  }) => {
+    const fs = new NodeFileSystemAdapter();
+    const step = (n: number, label: string) => process.stdout.write(`[${n}/6] ${label}...`);
+    const ok = () => process.stdout.write(' done\n');
+
+    try {
+      if (opts.frontend) {
+        step(1, 'Scanning project');
+        await new ScanProjectUseCase(fs, new PackageJsonDetector(), new DotQaManifestWriter())
+          .execute({ frontendPath: opts.frontend, backendPath: opts.backend });
+        ok();
+
+        step(2, 'Analyzing source code');
+        await new AnalyzeProjectUseCase(
+          fs, new TsMorphAngularAnalyzer(), new TsMorphNestAnalyzer(), new ComponentInventoryWriter(),
+        ).execute({ frontendPath: opts.frontend, backendPath: opts.backend });
+        ok();
+      } else {
+        console.log('[1/6] Scan     — skipped (no --frontend provided)');
+        console.log('[2/6] Analyze  — skipped (no --frontend provided)');
+      }
+
+      step(3, 'Building route map');
+      await new BuildRouteMapUseCase(fs, new ComponentInventoryReader(), new RouteMapWriter())
+        .execute({ backendPath: opts.backend });
+      ok();
+
+      let aiEnricher = null;
+      if (opts.enrich) {
+        const anthropicKey = process.env['ANTHROPIC_API_KEY'];
+        const openaiKey = process.env['OPENAI_API_KEY'];
+        if (anthropicKey) {
+          aiEnricher = new AiEnricher(new AnthropicProvider(anthropicKey));
+        } else if (openaiKey) {
+          aiEnricher = new AiEnricher(new OpenAiProvider(openaiKey));
+        } else {
+          console.error('Pipeline failed: --enrich requires ANTHROPIC_API_KEY or OPENAI_API_KEY');
+          process.exit(1);
+        }
+      }
+
+      step(4, 'Generating test specs');
+      await new GenerateTestsUseCase(fs, new RouteMapReader(), new PlaywrightSpecWriter(), aiEnricher)
+        .execute({ backendPath: opts.backend });
+      ok();
+
+      step(5, 'Running tests');
+      const report = await new RunTestsUseCase(fs, new PlaywrightTestRunner(), new NodeProcessManager())
+        .execute({ backendPath: opts.backend, baseUrl: opts.baseUrl, startCommand: opts.startCommand });
+      ok();
+
+      step(6, 'Generating HTML report');
+      const htmlPath = new ExportReportUseCase(fs, new HtmlReportGenerator())
+        .execute({ backendPath: opts.backend });
+      ok();
+
+      const { passed, failed, skipped, total } = report.summary;
+      console.log(`\n${'─'.repeat(48)}`);
+      console.log(`Pipeline complete`);
+      console.log(`Tests: ${passed} passed  ${failed} failed  ${skipped} skipped  (${total} total)`);
+      console.log(`Report: ${htmlPath}`);
+
+      if (failed > 0) process.exit(1);
+    } catch (err) {
+      console.error(`\nPipeline failed: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
   });

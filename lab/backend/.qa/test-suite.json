@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-14T00:47:27.496Z",
+  "generatedAt": "2026-07-18T21:51:06.157Z",
   "entries": [
     {
       "title": "GET /api/products - exact",
@@ -8,12 +8,7 @@
       "expectedStatus": 200,
       "confidence": "exact",
       "skipped": false,
-      "controllerName": "ProductsController",
-      "responseAssertions": [
-        "expect(body).toHaveProperty('products')",
-        "expect(body).toHaveProperty('totalCount')",
-        "expect(body).toHaveProperty('pageInfo')"
-      ]
+      "controllerName": "ProductsController"
     },
     {
       "title": "POST /api/products - exact",
@@ -22,26 +17,7 @@
       "expectedStatus": 201,
       "confidence": "exact",
       "skipped": false,
-      "controllerName": "ProductsController",
-      "requestBody": {
-        "name": "Wireless Bluetooth Headphones",
-        "description": "Noise-cancelling over-ear headphones with long battery life.",
-        "price": 89.99,
-        "category": "Electronics",
-        "stock": 150,
-        "sku": "WH-1200-BT",
-        "brand": "SoundMax",
-        "attributes": {
-          "color": "Black",
-          "weight": "250g",
-          "batteryLife": "20 hours"
-        }
-      },
-      "responseAssertions": [
-        "expect(body).toHaveProperty('id')",
-        "expect(body).toHaveProperty('createdAt')",
-        "expect(body).toHaveProperty('updatedAt')"
-      ]
+      "controllerName": "ProductsController"
     },
     {
       "title": "PUT /api/products - none",
