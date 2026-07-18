@@ -1,96 +1,255 @@
-# AiWebQaTesterTmp
+# ai-web-qa-tester
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+[![QA Pipeline](https://github.com/NeylaP/ai-web-qa-tester/actions/workflows/qa.yml/badge.svg)](https://github.com/NeylaP/ai-web-qa-tester/actions/workflows/qa.yml)
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+AI-powered QA automation tool for Angular + NestJS projects. Scans your source code, maps Angular HTTP calls to NestJS endpoints, generates Playwright test specs (optionally enriched by an LLM), runs them against a live server, and produces an HTML report — all from a single command.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+---
 
-## Run tasks
+## Features
 
-To run tasks with Nx use:
+- **Auto-discovery** — detects Angular components and NestJS controllers using ts-morph static analysis
+- **Route mapping** — correlates Angular HTTP calls with their NestJS endpoint counterparts
+- **Test generation** — produces Playwright `.spec.ts` files from the route map
+- **AI enrichment** — optionally calls OpenAI or Anthropic to add realistic request bodies and response assertions
+- **Auto-start** — builds and starts the NestJS backend automatically before running tests
+- **HTML report** — self-contained visual report with pass/fail badges, progress bar, and expandable errors
+- **Pipeline command** — runs the full cycle in one command, CI-ready
 
-```sh
-npx nx <target> <project-name>
+---
+
+## Architecture
+
+The project follows **Hexagonal (Clean) Architecture** inside an Nx monorepo:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      cli  (qa-tester binary)                     │
+│          orchestrates use cases, wires adapters together         │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+        ┌──────────────────┼─────────────────────────┐
+        ▼                  ▼                         ▼
+┌──────────────┐  ┌───────────────────┐  ┌──────────────────────┐
+│   scanner    │  │playwright-adapter │  │   ai-orchestrator    │
+│ ts-morph,    │  │ spec writer,      │  │ AnthropicProvider,   │
+│ Node fs/proc │  │ test runner,      │  │ OpenAiProvider,      │
+│              │  │ HTML generator    │  │ AiEnricher (Zod)     │
+└──────┬───────┘  └────────┬──────────┘  └──────────┬───────────┘
+       │                   │                         │
+       └───────────────────┼─────────────────────────┘
+                           │  implement ports defined in
+                           ▼
+        ┌──────────────────────────────────────────────┐
+        │              core-application                 │
+        │   use cases · ports (interfaces only)         │
+        │   no Node.js / framework dependencies         │
+        └──────────────────┬───────────────────────────┘
+                           │  uses entities from
+                           ▼
+        ┌──────────────────────────────────────────────┐
+        │                core-domain                    │
+        │  TestSpec · TestReport · RouteMap · etc.      │
+        └──────────────────────────────────────────────┘
 ```
 
-For example:
+### Libraries
 
-```sh
-npx nx build myproject
+| Library | Type | Responsibility |
+|---|---|---|
+| `core-domain` | domain | Entity interfaces and types |
+| `core-application` | application | Use cases and port interfaces |
+| `scanner` | infrastructure | ts-morph analyzers, Node.js file/process adapters |
+| `playwright-adapter` | infrastructure | Spec writer, test runner, HTML report generator |
+| `ai-orchestrator` | infrastructure | Anthropic and OpenAI providers, AI enricher |
+| `cli` | app | Commander.js CLI binary |
+
+---
+
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+- A NestJS backend project
+- (Optional) An Angular frontend project for route mapping
+- (Optional) `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` for AI enrichment
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/NeylaP/ai-web-qa-tester.git
+cd ai-web-qa-tester
+npm install --legacy-peer-deps
+npx nx run cli:build:production
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+---
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Usage
 
-## Add new projects
+All commands are available via `node dist/cli/main.js` or alias `qa-tester` once installed globally.
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+### Full pipeline (recommended)
 
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+```bash
+node dist/cli/main.js pipeline \
+  --backend path/to/backend \
+  --base-url http://localhost:3000 \
+  [--frontend path/to/frontend] \
+  [--enrich]
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+Runs all steps in sequence and exits with code `1` if any test fails.
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+---
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+### Individual commands
+
+#### `scan`
+Detects project frameworks and writes `.qa/project-manifest.json`.
+
+```bash
+node dist/cli/main.js scan \
+  --frontend path/to/frontend \
+  --backend path/to/backend
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+#### `analyze`
+Analyzes Angular components and NestJS controllers using ts-morph.
+Writes `.qa/component-inventory.json`.
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+```bash
+node dist/cli/main.js analyze \
+  --frontend path/to/frontend \
+  --backend path/to/backend
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+#### `map`
+Maps Angular HTTP calls to NestJS endpoints.
+Writes `.qa/route-map.json`.
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+```bash
+node dist/cli/main.js map --backend path/to/backend
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+#### `generate`
+Generates Playwright `.spec.ts` files from the route map.
+Optionally enriches specs with AI-generated request bodies and assertions.
 
-## Install Nx Console
+```bash
+# Without AI enrichment
+node dist/cli/main.js generate --backend path/to/backend
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+# With AI enrichment (auto-detects provider from env vars)
+node dist/cli/main.js generate --backend path/to/backend --enrich
+```
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+#### `run`
+Builds and starts the NestJS backend, runs the generated Playwright tests, stops the backend, and writes `.qa/test-report.json`.
 
-## Useful links
+```bash
+node dist/cli/main.js run \
+  --backend path/to/backend \
+  --base-url http://localhost:3000 \
+  [--start-command "npx nest build && node dist/main.js"]
+```
 
-Learn more:
+#### `report`
+Generates a self-contained HTML report from `.qa/test-report.json`.
 
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+```bash
+node dist/cli/main.js report \
+  --backend path/to/backend \
+  [--output path/to/custom-report.html]
+```
 
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+---
+
+## AI Enrichment
+
+When `--enrich` is used, the tool sends each endpoint's metadata to an LLM and adds:
+
+- **`requestBody`** — realistic sample payload for POST/PUT/PATCH endpoints
+- **`responseAssertions`** — up to 3 `expect(body).toHaveProperty(...)` assertions
+
+Provider auto-detection order:
+1. `ANTHROPIC_API_KEY` → uses `claude-haiku-4-5` (fastest)
+2. `OPENAI_API_KEY` → uses `gpt-4o-mini`
+
+All AI errors are silent — if enrichment fails, the test is generated without enrichment.
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `ANTHROPIC_API_KEY` | Anthropic API key for AI enrichment |
+| `OPENAI_API_KEY` | OpenAI API key for AI enrichment |
+
+---
+
+## CI / GitHub Actions
+
+A workflow is included at `.github/workflows/qa.yml`. It runs on every push and pull request to `main`/`master`.
+
+**Setup:**
+1. Go to your GitHub repo → Settings → Secrets → Actions
+2. Add `OPENAI_API_KEY` (optional — skip for basic HTTP status testing)
+3. Push — the pipeline will run automatically
+
+**To enable AI enrichment in CI**, update the workflow step:
+
+```yaml
+- name: Run QA pipeline
+  run: |
+    node dist/cli/main.js pipeline \
+      --backend lab/backend \
+      --base-url http://localhost:3000 \
+      --enrich
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+The job exits with code `1` if any test fails, causing GitHub to mark the run as failed.
+The HTML report is uploaded as a build artifact on every run (pass or fail).
+
+---
+
+## Project Structure
+
+```
+ai-web-qa-tester/
+├── core-domain/          # Entity interfaces (TestSpec, TestReport, RouteMap…)
+├── core-application/     # Use cases + port interfaces
+├── scanner/              # ts-morph analyzers + Node.js adapters
+├── playwright-adapter/   # Spec writer, test runner, HTML report
+├── ai-orchestrator/      # Anthropic + OpenAI providers
+├── cli/                  # qa-tester CLI binary
+├── lab/
+│   └── backend/          # Sample NestJS project used for testing
+│       ├── src/
+│       │   └── products/ # Products controller + service + DTOs
+│       └── .qa/          # Generated artifacts (route-map, specs, report)
+└── .github/
+    └── workflows/
+        └── qa.yml        # GitHub Actions QA pipeline
+```
+
+---
+
+## Output Files
+
+All generated files are written to `<backend>/.qa/`:
+
+| File | Generated by | Description |
+|---|---|---|
+| `project-manifest.json` | `scan` | Framework detection results |
+| `component-inventory.json` | `analyze` | Angular + NestJS component catalog |
+| `route-map.json` | `map` | Matched route pairs |
+| `test-suite.json` | `generate` | Structured test spec list |
+| `tests/*.spec.ts` | `generate` | Playwright test files |
+| `test-report.json` | `run` | Machine-readable test results |
+| `test-report.html` | `report` | Visual HTML report |
