@@ -26,6 +26,9 @@ jobs:
       - name: Install lab/backend dependencies
         run: npm install --prefix lab/backend
 
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
       - name: Build CLI
         run: npx nx run cli:build:production
 

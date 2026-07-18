@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import { Command } from 'commander';
 import {
   ScanProjectUseCase, ScanError,
@@ -254,10 +255,8 @@ program
         console.log('[2/6] Analyze  — skipped (no --frontend provided)');
       }
 
-      step(3, 'Building route map');
-      await new BuildRouteMapUseCase(fs, new ComponentInventoryReader(), new RouteMapWriter())
-        .execute({ backendPath: opts.backend });
-      ok();
+      const inventoryPath = path.resolve(opts.backend, '.qa', 'component-inventory.json');
+      const testDir = path.resolve(opts.backend, '.qa', 'tests');
 
       let aiEnricher = null;
       if (opts.enrich) {
@@ -273,10 +272,25 @@ program
         }
       }
 
-      step(4, 'Generating test specs');
-      await new GenerateTestsUseCase(fs, new RouteMapReader(), new PlaywrightSpecWriter(), aiEnricher)
-        .execute({ backendPath: opts.backend });
-      ok();
+      if (fs.exists(inventoryPath)) {
+        step(3, 'Building route map');
+        await new BuildRouteMapUseCase(fs, new ComponentInventoryReader(), new RouteMapWriter())
+          .execute({ backendPath: opts.backend });
+        ok();
+
+        step(4, 'Generating test specs');
+        await new GenerateTestsUseCase(fs, new RouteMapReader(), new PlaywrightSpecWriter(), aiEnricher)
+          .execute({ backendPath: opts.backend });
+        ok();
+      } else if (fs.exists(testDir)) {
+        console.log('[3/6] Map      — skipped (no inventory, using existing specs)');
+        console.log('[4/6] Generate — skipped (no inventory, using existing specs)');
+      } else {
+        throw new Error(
+          'No component-inventory.json and no test specs found.\n' +
+          "Provide --frontend to analyze source code, or run 'generate' first.",
+        );
+      }
 
       step(5, 'Running tests');
       const report = await new RunTestsUseCase(fs, new PlaywrightTestRunner(), new NodeProcessManager())
