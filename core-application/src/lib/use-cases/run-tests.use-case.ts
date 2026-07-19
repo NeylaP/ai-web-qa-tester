@@ -7,6 +7,8 @@ export interface RunTestsInput {
   backendPath: string;
   baseUrl: string;
   startCommand?: string;
+  skipBackend?: boolean;
+  authToken?: string;
 }
 
 export class RunTestsError extends Error {
@@ -33,12 +35,16 @@ export class RunTestsUseCase {
       );
     }
 
+    if (input.skipBackend) {
+      return await this.runner.run({ testDir, baseUrl: input.baseUrl, outputPath, authToken: input.authToken });
+    }
+
     const startCmd = input.startCommand ?? this.deriveStartCommand(input.backendPath);
 
     try {
       await this.processManager.start(startCmd, input.backendPath);
       await this.processManager.waitForReady(input.baseUrl, 120_000);
-      return await this.runner.run({ testDir, baseUrl: input.baseUrl, outputPath });
+      return await this.runner.run({ testDir, baseUrl: input.baseUrl, outputPath, authToken: input.authToken });
     } finally {
       await this.processManager.stop();
     }

@@ -14,6 +14,7 @@ export class AnalysisError extends Error {
 export interface AnalyzeProjectInput {
   frontendPath: string;
   backendPath: string;
+  skipBackendAnalysis?: boolean;
 }
 
 export class AnalyzeProjectUseCase {
@@ -28,9 +29,11 @@ export class AnalyzeProjectUseCase {
     const frontendAbs = path.resolve(input.frontendPath);
     const backendAbs = path.resolve(input.backendPath);
 
-    const manifestPath = path.join(backendAbs, '.qa', 'project-manifest.json');
-    if (!this.fs.exists(manifestPath)) {
-      throw new AnalysisError(`project-manifest.json not found — run 'scan' first: ${manifestPath}`);
+    if (!input.skipBackendAnalysis) {
+      const manifestPath = path.join(backendAbs, '.qa', 'project-manifest.json');
+      if (!this.fs.exists(manifestPath)) {
+        throw new AnalysisError(`project-manifest.json not found — run 'scan' first: ${manifestPath}`);
+      }
     }
 
     const frontendTsConfig = path.join(frontendAbs, 'tsconfig.json');
@@ -39,13 +42,15 @@ export class AnalyzeProjectUseCase {
     }
 
     const backendTsConfig = path.join(backendAbs, 'tsconfig.json');
-    if (!this.fs.exists(backendTsConfig)) {
+    if (!input.skipBackendAnalysis && !this.fs.exists(backendTsConfig)) {
       throw new AnalysisError(`tsconfig.json not found in backend path: ${backendTsConfig}`);
     }
 
     const [angular, nestjs] = await Promise.all([
       this.angularAnalyzer.analyze(frontendAbs, frontendTsConfig),
-      this.nestAnalyzer.analyze(backendAbs, backendTsConfig),
+      input.skipBackendAnalysis
+        ? Promise.resolve<NestInventory>({ controllers: [], services: [], dtos: [] })
+        : this.nestAnalyzer.analyze(backendAbs, backendTsConfig),
     ]);
 
     const inventory: ComponentInventory = {

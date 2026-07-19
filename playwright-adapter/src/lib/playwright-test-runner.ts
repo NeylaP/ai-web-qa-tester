@@ -47,11 +47,19 @@ export class PlaywrightTestRunner implements TestRunnerPort {
     const qaDir = path.dirname(input.outputPath);
     fs.mkdirSync(qaDir, { recursive: true });
     const configPath = path.join(qaDir, 'playwright.run.config.ts');
+
+    const useLines: string[] = [`    baseURL: ${JSON.stringify(input.baseUrl)},`];
+    if (input.authToken) {
+      useLines.push(`    extraHTTPHeaders: { Authorization: 'Bearer ${input.authToken}' },`);
+    }
+
     const content = [
       `import { defineConfig } from '@playwright/test';`,
       `export default defineConfig({`,
       `  testDir: ${JSON.stringify(path.resolve(input.testDir))},`,
-      `  use: { baseURL: ${JSON.stringify(input.baseUrl)} },`,
+      `  use: {`,
+      ...useLines,
+      `  },`,
       `  reporter: [['json', { outputFile: ${JSON.stringify(path.resolve(rawReportPath))} }]],`,
       `});`,
     ].join('\n');

@@ -3,6 +3,8 @@ export { PackageJsonDetector } from './lib/package-json-detector';
 export { DotQaManifestWriter } from './lib/dot-qa-manifest-writer';
 export { TsMorphAngularAnalyzer } from './lib/ts-morph-angular-analyzer';
 export { TsMorphNestAnalyzer } from './lib/ts-morph-nest-analyzer';
+export { AngularConstantsScannerAdapter } from './lib/angular-constants-scanner.adapter';
+export { NullNestAnalyzer } from './lib/null-nest-analyzer.adapter';
 export { ComponentInventoryWriter } from './lib/component-inventory-writer';
 export { ComponentInventoryReader } from './lib/component-inventory-reader.adapter';
 export { RouteMapWriter } from './lib/route-map-writer.adapter';

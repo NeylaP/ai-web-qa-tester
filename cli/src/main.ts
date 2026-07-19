@@ -15,6 +15,8 @@ import {
   DotQaManifestWriter,
   TsMorphAngularAnalyzer,
   TsMorphNestAnalyzer,
+  AngularConstantsScannerAdapter,
+  NullNestAnalyzer,
   ComponentInventoryWriter,
   ComponentInventoryReader,
   RouteMapWriter,
@@ -65,11 +67,17 @@ program
   .description('Analyze Angular + NestJS source code and generate a component inventory')
   .requiredOption('--frontend <path>', 'absolute or relative path to Angular frontend project')
   .requiredOption('--backend <path>', 'absolute or relative path to NestJS backend project')
-  .action(async (opts: { frontend: string; backend: string }) => {
+  .option('--constants-file <path>', 'path to Angular constants file (skips ts-morph and NestJS analysis)')
+  .action(async (opts: { frontend: string; backend: string; constantsFile?: string }) => {
+    const angularAnalyzer = opts.constantsFile
+      ? new AngularConstantsScannerAdapter(path.resolve(opts.constantsFile))
+      : new TsMorphAngularAnalyzer();
+    const nestAnalyzer = opts.constantsFile ? new NullNestAnalyzer() : new TsMorphNestAnalyzer();
+
     const useCase = new AnalyzeProjectUseCase(
       new NodeFileSystemAdapter(),
-      new TsMorphAngularAnalyzer(),
-      new TsMorphNestAnalyzer(),
+      angularAnalyzer,
+      nestAnalyzer,
       new ComponentInventoryWriter(),
     );
 
@@ -77,6 +85,7 @@ program
       const inventory = await useCase.execute({
         frontendPath: opts.frontend,
         backendPath: opts.backend,
+        skipBackendAnalysis: !!opts.constantsFile,
       });
       console.log(`Inventory written to: ${opts.backend}/.qa/component-inventory.json`);
       console.log(JSON.stringify(inventory, null, 2));
@@ -168,7 +177,9 @@ program
   .requiredOption('--backend <path>', 'path to NestJS backend project')
   .requiredOption('--base-url <url>', 'base URL where the server will listen (e.g. http://localhost:3000)')
   .option('--start-command <cmd>', 'command to start the backend (default: npx nx serve <project>)')
-  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string }) => {
+  .option('--skip-backend', 'skip starting the backend server (use when it is already running)')
+  .option('--auth-token <token>', 'Bearer token injected as Authorization header in every request')
+  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string }) => {
     const useCase = new RunTestsUseCase(
       new NodeFileSystemAdapter(),
       new PlaywrightTestRunner(),
@@ -180,6 +191,8 @@ program
         backendPath: opts.backend,
         baseUrl: opts.baseUrl,
         startCommand: opts.startCommand,
+        skipBackend: opts.skipBackend,
+        authToken: opts.authToken,
       });
       console.log(`\nTest report written to: ${opts.backend}/.qa/test-report.json`);
       console.log(JSON.stringify(report, null, 2));
@@ -228,12 +241,18 @@ program
   .option('--frontend <path>', 'path to Angular frontend project (enables scan + analyze steps)')
   .option('--enrich', 'enrich tests with AI (requires OPENAI_API_KEY or ANTHROPIC_API_KEY)')
   .option('--start-command <cmd>', 'command to start the backend')
+  .option('--constants-file <path>', 'path to Angular constants file (skips ts-morph and NestJS analysis)')
+  .option('--skip-backend', 'skip starting the backend server (use when it is already running)')
+  .option('--auth-token <token>', 'Bearer token injected as Authorization header in every request')
   .action(async (opts: {
     backend: string;
     baseUrl: string;
     frontend?: string;
     enrich?: boolean;
     startCommand?: string;
+    constantsFile?: string;
+    skipBackend?: boolean;
+    authToken?: string;
   }) => {
     const fs = new NodeFileSystemAdapter();
     const step = (n: number, label: string) => process.stdout.write(`[${n}/6] ${label}...`);
@@ -241,15 +260,28 @@ program
 
     try {
       if (opts.frontend) {
-        step(1, 'Scanning project');
-        await new ScanProjectUseCase(fs, new PackageJsonDetector(), new DotQaManifestWriter())
-          .execute({ frontendPath: opts.frontend, backendPath: opts.backend });
-        ok();
+        if (opts.constantsFile) {
+          console.log('[1/6] Scan     — skipped (constants mode, no package.json detection needed)');
+        } else {
+          step(1, 'Scanning project');
+          await new ScanProjectUseCase(fs, new PackageJsonDetector(), new DotQaManifestWriter())
+            .execute({ frontendPath: opts.frontend, backendPath: opts.backend });
+          ok();
+        }
+
+        const angularAnalyzer = opts.constantsFile
+          ? new AngularConstantsScannerAdapter(path.resolve(opts.constantsFile))
+          : new TsMorphAngularAnalyzer();
+        const nestAnalyzer = opts.constantsFile ? new NullNestAnalyzer() : new TsMorphNestAnalyzer();
 
         step(2, 'Analyzing source code');
         await new AnalyzeProjectUseCase(
-          fs, new TsMorphAngularAnalyzer(), new TsMorphNestAnalyzer(), new ComponentInventoryWriter(),
-        ).execute({ frontendPath: opts.frontend, backendPath: opts.backend });
+          fs, angularAnalyzer, nestAnalyzer, new ComponentInventoryWriter(),
+        ).execute({
+          frontendPath: opts.frontend,
+          backendPath: opts.backend,
+          skipBackendAnalysis: !!opts.constantsFile,
+        });
         ok();
       } else {
         console.log('[1/6] Scan     — skipped (no --frontend provided)');
@@ -295,7 +327,13 @@ program
 
       step(5, 'Running tests');
       const report = await new RunTestsUseCase(fs, new PlaywrightTestRunner(), new NodeProcessManager())
-        .execute({ backendPath: opts.backend, baseUrl: opts.baseUrl, startCommand: opts.startCommand });
+        .execute({
+          backendPath: opts.backend,
+          baseUrl: opts.baseUrl,
+          startCommand: opts.startCommand,
+          skipBackend: opts.skipBackend,
+          authToken: opts.authToken,
+        });
       ok();
 
       step(6, 'Generating HTML report');

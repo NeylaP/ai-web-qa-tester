@@ -4,6 +4,7 @@ export interface TestRunnerInput {
   testDir: string;
   baseUrl: string;
   outputPath: string;
+  authToken?: string;
 }
 
 export interface TestRunnerPort {

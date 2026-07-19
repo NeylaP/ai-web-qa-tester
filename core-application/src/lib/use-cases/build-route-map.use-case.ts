@@ -92,10 +92,15 @@ export class BuildRouteMapUseCase {
 
     const inventory = await this.reader.read(backendAbs);
 
+    const noBackend = inventory.nestjs.controllers.length === 0;
     const entries: RouteMapEntry[] = [];
     for (const service of inventory.angular.services) {
       for (const httpCall of service.httpCalls) {
-        entries.push(matchEntry(service.name, httpCall, inventory.nestjs.controllers));
+        entries.push(
+          noBackend
+            ? { angularService: service.name, httpCall, matchedEndpoint: null, confidence: 'exact' }
+            : matchEntry(service.name, httpCall, inventory.nestjs.controllers),
+        );
       }
     }
 
