@@ -53,6 +53,13 @@ function renderFile(controllerName: string, specs: TestSpec[]): string {
 
 export class PlaywrightSpecWriter implements TestSuiteWriterPort {
   async write(suite: TestSuite, backendPath: string, outputDir: string): Promise<void> {
+    if (fs.existsSync(outputDir)) {
+      for (const file of fs.readdirSync(outputDir)) {
+        if (file.endsWith('.spec.ts')) {
+          fs.unlinkSync(path.join(outputDir, file));
+        }
+      }
+    }
     fs.mkdirSync(outputDir, { recursive: true });
 
     const groups = new Map<string, TestSpec[]>();

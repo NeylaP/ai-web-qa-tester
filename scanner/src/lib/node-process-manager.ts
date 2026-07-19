@@ -38,11 +38,12 @@ export class NodeProcessManager implements ProcessManagerPort {
   async stop(): Promise<void> {
     if (!this.child?.pid) return;
     const pid = this.child.pid;
-    if (process.platform === 'win32') {
-      exec(`taskkill /F /T /PID ${pid}`);
-    } else {
-      this.child.kill('SIGTERM');
-    }
+    const child = this.child;
     this.child = null;
+    if (process.platform === 'win32') {
+      await new Promise<void>((resolve) => exec(`taskkill /F /T /PID ${pid}`, () => resolve()));
+    } else {
+      child.kill('SIGTERM');
+    }
   }
 }
