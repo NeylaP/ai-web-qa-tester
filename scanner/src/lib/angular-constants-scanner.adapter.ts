@@ -102,32 +102,26 @@ export class AngularConstantsScannerAdapter implements InventoryAnalyzerPort<Ang
 
   private extractHttpCalls(content: string, constantsMap: Map<string, string>): HttpCall[] {
     const calls: HttpCall[] = [];
-    // Capture: this.http.METHOD(  <first-argument>
-    // Stops at first comma, closing paren, or newline — enough to grab the URL arg.
-    const httpRe = /this\.http\.(get|post|put|patch|delete)\(\s*([^,)\n]+)/gi;
     let match: RegExpExecArray | null;
 
-    while ((match = httpRe.exec(content)) !== null) {
+    // Pattern 1 — direct constant (possibly with TS generic): this.http.get<T>(ROUTES_X.Y)
+    // [^(]* skips over the optional generic type parameter e.g. <IResponse<IJobs[]>>
+    const directRe = /this\.http\.(get|post|put|patch|delete)[^(]*\(\s*(ROUTES_\w+\.\w+)/gi;
+    while ((match = directRe.exec(content)) !== null) {
       const method = match[1].toUpperCase() as HttpCall['method'];
-      const argStr = match[2].trim();
+      const urlPattern = constantsMap.get(match[2]);
+      if (urlPattern) this.addCall(calls, method, urlPattern);
+    }
 
-      // Pattern 1 — direct constant: ROUTES_PRIVATE.CATEGORIES
-      const directMatch = argStr.match(/^(ROUTES_\w+\.\w+)/);
-      if (directMatch) {
-        const urlPattern = constantsMap.get(directMatch[1]);
-        if (urlPattern) this.addCall(calls, method, urlPattern);
-        continue;
-      }
-
-      // Pattern 2 — template literal starting with a constant: `${ROUTES_PRIVATE.JOBS}/${id}`
-      const templateMatch = argStr.match(/^`\$\{(ROUTES_\w+\.\w+)\}([^`]*)/);
-      if (templateMatch) {
-        const base = constantsMap.get(templateMatch[1]);
-        if (base) {
-          // Replace dynamic segments like /${id} with /:id
-          const suffix = (templateMatch[2] ?? '').replace(/\/\$\{[^}]+\}/g, '/:id');
-          this.addCall(calls, method, `${base}${suffix}`);
-        }
+    // Pattern 2 — template literal: this.http.get<T>(`${ROUTES_X.Y}/suffix/${id}`)
+    // [^`]* matches across newlines so multi-line calls are captured
+    const templateRe = /this\.http\.(get|post|put|patch|delete)[^(]*\(\s*`\$\{(ROUTES_\w+\.\w+)\}([^`]*)`/gi;
+    while ((match = templateRe.exec(content)) !== null) {
+      const method = match[1].toUpperCase() as HttpCall['method'];
+      const base = constantsMap.get(match[2]);
+      if (base) {
+        const suffix = (match[3] ?? '').replace(/\/\$\{[^}]+\}/g, '/:id').trim();
+        this.addCall(calls, method, `${base}${suffix}`);
       }
     }
 
