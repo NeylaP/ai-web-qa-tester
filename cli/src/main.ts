@@ -179,7 +179,8 @@ program
   .option('--start-command <cmd>', 'command to start the backend (default: npx nx serve <project>)')
   .option('--skip-backend', 'skip starting the backend server (use when it is already running)')
   .option('--auth-token <token>', 'Bearer token injected as Authorization header in every request')
-  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string }) => {
+  .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
+  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; originHeader?: string }) => {
     const useCase = new RunTestsUseCase(
       new NodeFileSystemAdapter(),
       new PlaywrightTestRunner(),
@@ -193,6 +194,7 @@ program
         startCommand: opts.startCommand,
         skipBackend: opts.skipBackend,
         authToken: opts.authToken,
+        originHeader: opts.originHeader,
       });
       console.log(`\nTest report written to: ${opts.backend}/.qa/test-report.json`);
       console.log(JSON.stringify(report, null, 2));
@@ -244,6 +246,7 @@ program
   .option('--constants-file <path>', 'path to Angular constants file (skips ts-morph and NestJS analysis)')
   .option('--skip-backend', 'skip starting the backend server (use when it is already running)')
   .option('--auth-token <token>', 'Bearer token injected as Authorization header in every request')
+  .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
   .action(async (opts: {
     backend: string;
     baseUrl: string;
@@ -253,6 +256,7 @@ program
     constantsFile?: string;
     skipBackend?: boolean;
     authToken?: string;
+    originHeader?: string;
   }) => {
     const fs = new NodeFileSystemAdapter();
     const step = (n: number, label: string) => process.stdout.write(`[${n}/6] ${label}...`);
@@ -333,6 +337,7 @@ program
           startCommand: opts.startCommand,
           skipBackend: opts.skipBackend,
           authToken: opts.authToken,
+          originHeader: opts.originHeader,
         });
       ok();
 

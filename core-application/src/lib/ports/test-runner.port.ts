@@ -5,6 +5,7 @@ export interface TestRunnerInput {
   baseUrl: string;
   outputPath: string;
   authToken?: string;
+  originHeader?: string;
 }
 
 export interface TestRunnerPort {
