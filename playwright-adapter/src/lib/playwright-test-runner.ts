@@ -46,6 +46,17 @@ export class PlaywrightTestRunner implements TestRunnerPort {
   private writeConfig(input: TestRunnerInput, rawReportPath: string): string {
     const qaDir = path.dirname(input.outputPath);
     fs.mkdirSync(qaDir, { recursive: true });
+
+    // Create a directory junction so spec files in <qaDir>/tests/ resolve
+    // `@playwright/test` to our local version instead of any global install.
+    // Junction type works without admin rights on Windows.
+    const junctionDst = path.join(qaDir, 'node_modules', '@playwright', 'test');
+    if (!fs.existsSync(junctionDst)) {
+      const localPwt = path.resolve(process.cwd(), 'node_modules', '@playwright', 'test');
+      fs.mkdirSync(path.dirname(junctionDst), { recursive: true });
+      fs.symlinkSync(localPwt, junctionDst, 'junction');
+    }
+
     const configPath = path.join(qaDir, 'playwright.run.config.ts');
 
     const useLines: string[] = [`    baseURL: ${JSON.stringify(input.baseUrl)},`];
@@ -72,9 +83,13 @@ export class PlaywrightTestRunner implements TestRunnerPort {
 
   private runPlaywright(configPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const child = spawn('npx', ['playwright', 'test', '--config', configPath], {
+      // Call the local @playwright/test CLI directly via node — avoids npx resolving
+      // the global `playwright` package instead of the local `@playwright/test`.
+      const playwrightCli = path.join(process.cwd(), 'node_modules', '@playwright', 'test', 'cli.js');
+      const child = spawn(process.execPath, [playwrightCli, 'test', '--config', configPath], {
         stdio: 'inherit',
-        shell: true,
+        shell: false,
+        env: process.env,
       });
       child.on('close', (code) => {
         // 0 = all passed, 1 = some tests failed — both acceptable (we parse the report)
