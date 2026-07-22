@@ -81,4 +81,29 @@ describe('GenerateTestsUseCase', () => {
     await useCase.execute({ backendPath: '.' });
     expect(aiEnricher.enrich).not.toHaveBeenCalled();
   });
+
+  it('aiEnricher returns errorCases → flattened as separate entries before happy path', async () => {
+    const enriched = {
+      requestBody: { name: 'Widget', price: 9.99 },
+      responseAssertions: ["expect(body).toHaveProperty('id')"],
+      errorCases: [
+        {
+          title: 'POST /api/products with missing required fields returns 422',
+          requestBody: {},
+          expectedStatus: 422,
+          responseAssertions: ["expect(body).toHaveProperty('message')"],
+        },
+      ],
+    };
+    const aiEnricher = { enrich: vi.fn().mockResolvedValue(enriched) };
+    const useCase = new GenerateTestsUseCase(makeFs(), makeReader([exactPost]), makeWriter(), aiEnricher);
+    const suite = await useCase.execute({ backendPath: '.' });
+    expect(suite.entries).toHaveLength(2);
+    const [errorCase, happyPath] = suite.entries;
+    expect(errorCase.expectedStatus).toBe(422);
+    expect(errorCase.requestBody).toEqual({});
+    expect(errorCase.skipped).toBe(false);
+    expect(happyPath.expectedStatus).toBe(201);
+    expect(happyPath.requestBody).toEqual({ name: 'Widget', price: 9.99 });
+  });
 });

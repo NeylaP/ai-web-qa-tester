@@ -50,4 +50,35 @@ describe('AiEnricher', () => {
     expect(result.requestBody).toEqual({ name: 'Test' });
     expect(result.responseAssertions).toBeUndefined();
   });
+
+  it('POST with errorCases in AI response → errorCases returned', async () => {
+    const json = JSON.stringify({
+      requestBody: { name: 'Widget', price: 9.99 },
+      responseAssertions: ["expect(body).toHaveProperty('id')"],
+      errorCases: [
+        {
+          title: 'POST /api/products with missing required fields returns 422',
+          requestBody: {},
+          expectedStatus: 422,
+          responseAssertions: ["expect(body).toHaveProperty('message')"],
+        },
+      ],
+    });
+    const enricher = new AiEnricher(makeProvider(json));
+    const result = await enricher.enrich(baseSpec);
+    expect(result.errorCases).toHaveLength(1);
+    expect(result.errorCases![0].expectedStatus).toBe(422);
+    expect(result.errorCases![0].requestBody).toEqual({});
+  });
+
+  it('errorCases with invalid shape → errorCases silently dropped, requestBody preserved', async () => {
+    const json = JSON.stringify({
+      requestBody: { name: 'Test' },
+      errorCases: [{ invalid: 'no title or requestBody or expectedStatus' }],
+    });
+    const enricher = new AiEnricher(makeProvider(json));
+    const result = await enricher.enrich(baseSpec);
+    expect(result.errorCases).toBeUndefined();
+    expect(result.requestBody).toEqual({ name: 'Test' });
+  });
 });

@@ -60,7 +60,24 @@ export class GenerateTestsUseCase {
       let spec = toTestSpec(entry);
       if (!spec.skipped && this.aiEnricher) {
         const enriched = await this.aiEnricher.enrich(spec);
-        spec = { ...spec, ...enriched };
+        spec = {
+          ...spec,
+          requestBody: enriched.requestBody,
+          responseAssertions: enriched.responseAssertions,
+        };
+        for (const ec of enriched.errorCases ?? []) {
+          entries.push({
+            title: ec.title,
+            method: spec.method,
+            endpoint: spec.endpoint,
+            expectedStatus: ec.expectedStatus,
+            confidence: spec.confidence,
+            skipped: false,
+            controllerName: spec.controllerName,
+            requestBody: ec.requestBody,
+            responseAssertions: ec.responseAssertions,
+          });
+        }
       }
       entries.push(spec);
     }

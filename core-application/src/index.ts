@@ -15,7 +15,7 @@ export type { RouteMapReaderPort } from './lib/ports/route-map-reader.port';
 export type { TestSuiteWriterPort } from './lib/ports/test-suite-writer.port';
 export { GenerateTestsUseCase, GenerateTestsError } from './lib/use-cases/generate-tests.use-case';
 export type { GenerateTestsInput } from './lib/use-cases/generate-tests.use-case';
-export type { AiEnricherPort } from './lib/ports/ai-enricher.port';
+export type { AiEnricherPort, AiEnrichment, ErrorCaseSpec } from './lib/ports/ai-enricher.port';
 export type { TestRunnerInput, TestRunnerPort } from './lib/ports/test-runner.port';
 export type { ProcessManagerPort } from './lib/ports/process-manager.port';
 export { RunTestsUseCase, RunTestsError } from './lib/use-cases/run-tests.use-case';
