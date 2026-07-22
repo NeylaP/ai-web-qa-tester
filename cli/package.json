@@ -1,6 +1,6 @@
 {
     "name":  "@npmoncada/ai-web-qa-tester",
-    "version":  "0.1.2",
+    "version":  "0.1.3",
     "description":  "AI-powered QA test generator for Angular + NestJS / Laravel projects",
     "bin":  {
                 "qa-tester":  "bin/qa-tester"

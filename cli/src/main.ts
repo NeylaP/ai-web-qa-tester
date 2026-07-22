@@ -32,7 +32,8 @@ const program = new Command();
 program
   .name('qa-tester')
   .description('AI Web QA Tester CLI')
-  .version('0.0.1');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  .version((require('../../package.json') as { version: string }).version);
 
 program
   .command('scan')
