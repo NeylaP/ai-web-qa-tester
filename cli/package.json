@@ -1,0 +1,33 @@
+{
+  "name": "ai-web-qa-tester",
+  "version": "0.1.0",
+  "description": "AI-powered QA test generator for Angular + NestJS / Laravel projects",
+  "bin": {
+    "qa-tester": "./main.js"
+  },
+  "files": [
+    "main.js",
+    "ai-orchestrator/",
+    "cli/src/main.js",
+    "core-application/",
+    "core-domain/",
+    "playwright-adapter/",
+    "scanner/"
+  ],
+  "keywords": [
+    "qa",
+    "testing",
+    "angular",
+    "playwright",
+    "nestjs",
+    "ai",
+    "automation"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

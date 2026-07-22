@@ -68,6 +68,13 @@
       "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
       "executor": "nx:noop"
     },
+    "add-shebang": {
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node -e \"const fs=require('fs');const p='dist/cli/main.js';const c=fs.readFileSync(p,'utf-8');if(!c.startsWith('#!'))fs.writeFileSync(p,'#!/usr/bin/env node\\n'+c,'utf-8');console.log('Shebang added to dist/cli/main.js');\""
+      }
+    },
     "serve": {
       "continuous": true,
       "executor": "@nx/js:node",

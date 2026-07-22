@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import 'dotenv/config';
 import * as path from 'node:path';
 import { Command } from 'commander';
