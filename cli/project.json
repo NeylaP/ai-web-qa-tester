@@ -72,7 +72,7 @@
       "dependsOn": ["build"],
       "executor": "nx:run-commands",
       "options": {
-        "command": "node -e \"const fs=require('fs');const p='dist/cli/main.js';const c=fs.readFileSync(p,'utf-8');if(!c.startsWith('#!'))fs.writeFileSync(p,'#!/usr/bin/env node\\n'+c,'utf-8');console.log('Shebang added to dist/cli/main.js');\""
+        "command": "node -e \"const fs=require('fs');const p='dist/cli/main.js';const c=fs.readFileSync(p,'utf-8');if(!c.startsWith('#!'))fs.writeFileSync(p,'#!/usr/bin/env node\\n'+c,'utf-8');fs.mkdirSync('dist/cli/bin',{recursive:true});fs.writeFileSync('dist/cli/bin/qa-tester','#!/usr/bin/env node\\nrequire(\\\"../main.js\\\");\\n','utf-8');console.log('Shebang and bin wrapper added.');\""
       }
     },
     "serve": {
