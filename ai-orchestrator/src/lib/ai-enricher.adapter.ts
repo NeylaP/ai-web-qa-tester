@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { TestSpec, AiProvider } from '@ai-web-qa-tester/core-domain';
+import type { TestSpec, AiProvider, ControllerSetup } from '@ai-web-qa-tester/core-domain';
 import type { AiEnricherPort, AiEnrichment } from '@ai-web-qa-tester/core-application';
 
 const needsBody = (method: string): boolean => ['POST', 'PUT', 'PATCH'].includes(method);
@@ -16,6 +16,49 @@ const EnrichmentSchema = z.object({
   responseAssertions: z.array(z.string()).max(5).optional(),
   errorCases: z.array(ErrorCaseSchema).max(2).optional().catch(() => undefined),
 });
+
+const ControllerSetupSchema = z.object({
+  setupEndpoint: z.string(),
+  setupMethod: z.enum(['POST', 'PUT']),
+  setupBody: z.record(z.string(), z.unknown()),
+  uniqueFields: z.array(z.string()).optional(),
+  idPath: z.string(),
+  teardownEndpoint: z.string(),
+});
+
+function buildSetupPrompt(controllerName: string, specs: TestSpec[]): string {
+  const specLines = specs.map(s => `  ${s.method} ${s.endpoint} → ${s.expectedStatus}`).join('\n');
+  return [
+    'You are a QA test architect. Analyze the following REST API endpoints for a controller.',
+    '',
+    `Controller: ${controllerName}`,
+    'Endpoints:',
+    specLines,
+    '',
+    'Determine if this controller manages a resource lifecycle (CREATE → READ/UPDATE/DELETE).',
+    'If yes, return a JSON object describing how to set up and tear down test data.',
+    'If no (e.g., read-only or auth controller), return: null',
+    '',
+    'JSON structure if returning setup:',
+    '{',
+    '  "setupEndpoint": "/api/resource",',
+    '  "setupMethod": "POST",',
+    '  "setupBody": { "field1": "value1" },',
+    '  "uniqueFields": ["field1"],',
+    '  "idPath": "id",',
+    '  "teardownEndpoint": "/api/resource"',
+    '}',
+    '',
+    'Rules:',
+    '- setupBody: realistic body for a valid 2xx resource creation',
+    '- uniqueFields: string fields needing a timestamp suffix to avoid duplicates (e.g. name, email)',
+    '- idPath: dot-notation path to the ID in the response (e.g. "id" or "data.id")',
+    '- teardownEndpoint: base path for DELETE /{id} (usually same as setupEndpoint)',
+    '- Only return setup when a POST or PUT creates a resource; otherwise return null',
+    '',
+    'Return ONLY the JSON object or the word null (no markdown, no explanation):',
+  ].join('\n');
+}
 
 function buildPrompt(spec: TestSpec, controllerSource?: string): string {
   const withBody = needsBody(spec.method);
@@ -77,6 +120,23 @@ export class AiEnricher implements AiEnricherPort {
       return result.data;
     } catch {
       return {};
+    }
+  }
+
+  async enrichControllerSetup(controllerName: string, specs: TestSpec[]): Promise<ControllerSetup | null> {
+    const hasCreate = specs.some(s => s.method === 'POST' || s.method === 'PUT');
+    if (!hasCreate) return null;
+    try {
+      const raw = await this.provider.complete(buildSetupPrompt(controllerName, specs));
+      if (raw.trim() === 'null') return null;
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      const parsed = JSON.parse(jsonMatch[0]) as unknown;
+      const result = ControllerSetupSchema.safeParse(parsed);
+      if (!result.success) return null;
+      return result.data;
+    } catch {
+      return null;
     }
   }
 }

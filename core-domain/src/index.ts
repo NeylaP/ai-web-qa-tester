@@ -11,6 +11,6 @@ export type {
   ComponentInventory,
 } from './lib/component-inventory';
 export type { MatchConfidence, RouteMapEntry, RouteMap } from './lib/route-map';
-export type { TestSpec, TestSuite } from './lib/test-spec';
+export type { TestSpec, TestSuite, ControllerSetup } from './lib/test-spec';
 export type { AiProvider } from './lib/ai-provider';
 export type { TestResultStatus, TestResult, TestReport } from './lib/test-report';

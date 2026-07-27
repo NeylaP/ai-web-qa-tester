@@ -43,6 +43,7 @@ function matchEntry(
           httpCall,
           matchedEndpoint: { controller: controller.name, endpoint },
           confidence: 'exact',
+          controllerFile: controller.filePath,
         };
       }
     }
@@ -60,6 +61,7 @@ function matchEntry(
           httpCall,
           matchedEndpoint: { controller: controller.name, endpoint },
           confidence: 'partial',
+          controllerFile: controller.filePath,
         };
       }
     }

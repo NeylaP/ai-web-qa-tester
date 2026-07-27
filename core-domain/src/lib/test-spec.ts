@@ -12,7 +12,17 @@ export interface TestSpec {
   responseAssertions?: string[];
 }
 
+export interface ControllerSetup {
+  setupEndpoint: string;
+  setupMethod: 'POST' | 'PUT';
+  setupBody: Record<string, unknown>;
+  uniqueFields?: string[];
+  idPath: string;
+  teardownEndpoint: string;
+}
+
 export interface TestSuite {
   generatedAt: string;
   entries: TestSpec[];
+  controllerSetups?: Record<string, ControllerSetup>;
 }

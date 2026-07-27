@@ -3,7 +3,7 @@ import { GenerateTestsUseCase, GenerateTestsError } from './generate-tests.use-c
 import type { FileSystemPort } from '../ports/file-system.port';
 import type { RouteMapReaderPort } from '../ports/route-map-reader.port';
 import type { TestSuiteWriterPort } from '../ports/test-suite-writer.port';
-import type { RouteMap, RouteMapEntry } from '@ai-web-qa-tester/core-domain';
+import type { RouteMap, RouteMapEntry, ControllerSetup } from '@ai-web-qa-tester/core-domain';
 
 function makeFs(exists = true): FileSystemPort {
   return { exists: vi.fn().mockReturnValue(exists), isDirectory: vi.fn().mockReturnValue(true) };
@@ -80,6 +80,59 @@ describe('GenerateTestsUseCase', () => {
     const useCase = new GenerateTestsUseCase(makeFs(), makeReader([noneEntry]), makeWriter(), aiEnricher);
     await useCase.execute({ backendPath: '.' });
     expect(aiEnricher.enrich).not.toHaveBeenCalled();
+  });
+
+  it('entry with controllerFile → readFile called and controllerSource passed to enrich', async () => {
+    const entryWithFile: RouteMapEntry = {
+      ...exactGet,
+      controllerFile: 'src/products/products.controller.ts',
+    };
+    const mockFs: FileSystemPort = {
+      exists: vi.fn().mockReturnValue(true),
+      isDirectory: vi.fn().mockReturnValue(true),
+      readFile: vi.fn().mockReturnValue('// controller source'),
+    };
+    const aiEnricher = { enrich: vi.fn().mockResolvedValue({}) };
+    const useCase = new GenerateTestsUseCase(mockFs, makeReader([entryWithFile]), makeWriter(), aiEnricher);
+    await useCase.execute({ backendPath: '.' });
+    expect(mockFs.readFile).toHaveBeenCalled();
+    expect(aiEnricher.enrich).toHaveBeenCalledWith(expect.anything(), '// controller source');
+  });
+
+  it('enrichControllerSetup present → controllerSetups populated in suite', async () => {
+    const setup: ControllerSetup = {
+      setupEndpoint: '/api/products',
+      setupMethod: 'POST',
+      setupBody: { name: 'Widget' },
+      idPath: 'id',
+      teardownEndpoint: '/api/products',
+    };
+    const aiEnricher = {
+      enrich: vi.fn().mockResolvedValue({}),
+      enrichControllerSetup: vi.fn().mockResolvedValue(setup),
+    };
+    const useCase = new GenerateTestsUseCase(makeFs(), makeReader([exactPost]), makeWriter(), aiEnricher);
+    const suite = await useCase.execute({ backendPath: '.' });
+    expect(suite.controllerSetups).toBeDefined();
+    expect(suite.controllerSetups!['ProductsController']).toEqual(setup);
+    expect(aiEnricher.enrichControllerSetup).toHaveBeenCalledWith('ProductsController', expect.any(Array));
+  });
+
+  it('enrichControllerSetup returns null → controllerSetups undefined', async () => {
+    const aiEnricher = {
+      enrich: vi.fn().mockResolvedValue({}),
+      enrichControllerSetup: vi.fn().mockResolvedValue(null),
+    };
+    const useCase = new GenerateTestsUseCase(makeFs(), makeReader([exactGet]), makeWriter(), aiEnricher);
+    const suite = await useCase.execute({ backendPath: '.' });
+    expect(suite.controllerSetups).toBeUndefined();
+  });
+
+  it('aiEnricher without enrichControllerSetup → no controllerSetups', async () => {
+    const aiEnricher = { enrich: vi.fn().mockResolvedValue({}) };
+    const useCase = new GenerateTestsUseCase(makeFs(), makeReader([exactPost]), makeWriter(), aiEnricher);
+    const suite = await useCase.execute({ backendPath: '.' });
+    expect(suite.controllerSetups).toBeUndefined();
   });
 
   it('aiEnricher returns errorCases → flattened as separate entries before happy path', async () => {

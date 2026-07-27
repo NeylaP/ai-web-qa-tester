@@ -7,6 +7,7 @@ export interface RouteMapEntry {
   httpCall: HttpCall;
   matchedEndpoint: { controller: string; endpoint: NestEndpoint } | null;
   confidence: MatchConfidence;
+  controllerFile?: string;
 }
 
 export interface RouteMap {

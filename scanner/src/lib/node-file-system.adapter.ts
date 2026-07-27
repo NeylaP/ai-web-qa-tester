@@ -13,4 +13,8 @@ export class NodeFileSystemAdapter implements FileSystemPort {
       return false;
     }
   }
+
+  readFile(p: string): string {
+    return fs.readFileSync(p, 'utf-8');
+  }
 }

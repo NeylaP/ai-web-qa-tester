@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type { RouteMapEntry, TestSpec, TestSuite } from '@ai-web-qa-tester/core-domain';
+import type { RouteMapEntry, TestSpec, TestSuite, ControllerSetup } from '@ai-web-qa-tester/core-domain';
 import type { FileSystemPort } from '../ports/file-system.port';
 import type { RouteMapReaderPort } from '../ports/route-map-reader.port';
 import type { TestSuiteWriterPort } from '../ports/test-suite-writer.port';
@@ -59,7 +59,18 @@ export class GenerateTestsUseCase {
     for (const entry of routeMap.entries) {
       let spec = toTestSpec(entry);
       if (!spec.skipped && this.aiEnricher) {
-        const enriched = await this.aiEnricher.enrich(spec);
+        let controllerSource: string | undefined;
+        if (entry.controllerFile && this.fs.readFile) {
+          const filePath = path.join(backendAbs, entry.controllerFile);
+          if (this.fs.exists(filePath)) {
+            try {
+              controllerSource = this.fs.readFile(filePath);
+            } catch {
+              // unreadable — proceed without source
+            }
+          }
+        }
+        const enriched = await this.aiEnricher.enrich(spec, controllerSource);
         spec = {
           ...spec,
           requestBody: enriched.requestBody,
@@ -82,9 +93,29 @@ export class GenerateTestsUseCase {
       entries.push(spec);
     }
 
+    let controllerSetups: Record<string, ControllerSetup> | undefined;
+    if (this.aiEnricher?.enrichControllerSetup) {
+      const groups = new Map<string, TestSpec[]>();
+      for (const spec of entries) {
+        if (!spec.skipped) {
+          const list = groups.get(spec.controllerName) ?? [];
+          list.push(spec);
+          groups.set(spec.controllerName, list);
+        }
+      }
+      for (const [controllerName, specs] of groups) {
+        const setup = await this.aiEnricher.enrichControllerSetup(controllerName, specs);
+        if (setup) {
+          controllerSetups ??= {};
+          controllerSetups[controllerName] = setup;
+        }
+      }
+    }
+
     const suite: TestSuite = {
       generatedAt: new Date().toISOString(),
       entries,
+      ...(controllerSetups ? { controllerSetups } : {}),
     };
 
     const outputDir = input.outputPath

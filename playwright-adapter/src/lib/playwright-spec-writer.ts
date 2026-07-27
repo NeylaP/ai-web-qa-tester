@@ -1,18 +1,66 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { TestSpec, TestSuite } from '@ai-web-qa-tester/core-domain';
+import type { TestSpec, TestSuite, ControllerSetup } from '@ai-web-qa-tester/core-domain';
 import type { TestSuiteWriterPort } from '@ai-web-qa-tester/core-application';
 
-function requestCall(method: string, url: string, requestBody?: Record<string, unknown>): string {
+function substituteId(url: string): string {
+  return url.replace(/:[a-zA-Z]\w*|\{[a-zA-Z]\w*\}/g, '${_createdId}');
+}
+
+function hasPathParam(url: string): boolean {
+  return /:[a-zA-Z]\w*|\{[a-zA-Z]\w*\}/.test(url);
+}
+
+function requestCall(method: string, url: string, requestBody?: Record<string, unknown>, hasSetup?: boolean): string {
+  const needsSub = hasSetup && hasPathParam(url);
+  const resolvedUrl = needsSub ? substituteId(url) : url;
+  const urlExpr = needsSub ? `\`${resolvedUrl}\`` : `'${resolvedUrl}'`;
   const bodyArg = requestBody ? JSON.stringify(requestBody) : '{}';
   switch (method) {
-    case 'GET': return `request.get('${url}')`;
-    case 'DELETE': return `request.delete('${url}')`;
-    default: return `request.${method.toLowerCase()}('${url}', { data: ${bodyArg} })`;
+    case 'GET': return `request.get(${urlExpr})`;
+    case 'DELETE': return `request.delete(${urlExpr})`;
+    default: return `request.${method.toLowerCase()}(${urlExpr}, { data: ${bodyArg} })`;
   }
 }
 
-function renderSpec(spec: TestSpec): string {
+function renderSetupBlocks(setup: ControllerSetup): string {
+  const hasUnique = (setup.uniqueFields?.length ?? 0) > 0;
+  const bodyLines = Object.entries(setup.setupBody).map(([key, value]) => {
+    if (setup.uniqueFields?.includes(key) && typeof value === 'string') {
+      return `        ${key}: \`${value}_\${_ts}\`,`;
+    }
+    return `        ${key}: ${JSON.stringify(value)},`;
+  });
+
+  const lines: string[] = [
+    `  let _createdId: string | number;`,
+    ``,
+    `  test.beforeAll(async ({ request }) => {`,
+  ];
+
+  if (hasUnique) lines.push(`    const _ts = Date.now();`);
+
+  lines.push(
+    `    const setupResponse = await request.${setup.setupMethod.toLowerCase()}('${setup.setupEndpoint}', {`,
+    `      data: {`,
+    ...bodyLines,
+    `      },`,
+    `    });`,
+    `    const setupBody = await setupResponse.json();`,
+    `    _createdId = setupBody.${setup.idPath};`,
+    `  });`,
+    ``,
+    `  test.afterAll(async ({ request }) => {`,
+    `    if (_createdId !== undefined) {`,
+    `      await request.delete(\`${setup.teardownEndpoint}/\${_createdId}\`);`,
+    `    }`,
+    `  });`,
+  );
+
+  return lines.join('\n');
+}
+
+function renderSpec(spec: TestSpec, hasSetup = false): string {
   if (spec.skipped) {
     return [
       `  test.skip('${spec.title}', async ({ request }) => {`,
@@ -24,7 +72,7 @@ function renderSpec(spec: TestSpec): string {
 
   const lines: string[] = [
     `  test('${spec.title}', async ({ request }) => {`,
-    `    const response = await ${requestCall(spec.method, spec.endpoint, spec.requestBody)};`,
+    `    const response = await ${requestCall(spec.method, spec.endpoint, spec.requestBody, hasSetup)};`,
     `    expect(response.status()).toBe(${spec.expectedStatus});`,
   ];
 
@@ -39,16 +87,24 @@ function renderSpec(spec: TestSpec): string {
   return lines.join('\n');
 }
 
-function renderFile(controllerName: string, specs: TestSpec[]): string {
-  const tests = specs.map(renderSpec).join('\n\n');
-  return [
+function renderFile(controllerName: string, specs: TestSpec[], setup?: ControllerSetup): string {
+  const hasSetup = !!setup;
+  const chunks: string[] = [
     `import { test, expect } from '@playwright/test';`,
     ``,
     `test.describe('${controllerName}', () => {`,
-    tests,
-    `});`,
-    ``,
-  ].join('\n');
+  ];
+
+  if (setup) {
+    chunks.push(renderSetupBlocks(setup));
+    chunks.push(``);
+  }
+
+  chunks.push(specs.map(spec => renderSpec(spec, hasSetup)).join('\n\n'));
+  chunks.push(`});`);
+  chunks.push(``);
+
+  return chunks.join('\n');
 }
 
 export class PlaywrightSpecWriter implements TestSuiteWriterPort {
@@ -70,7 +126,8 @@ export class PlaywrightSpecWriter implements TestSuiteWriterPort {
     }
 
     for (const [controllerName, specs] of groups) {
-      const content = renderFile(controllerName, specs);
+      const setup = suite.controllerSetups?.[controllerName];
+      const content = renderFile(controllerName, specs, setup);
       fs.writeFileSync(path.join(outputDir, `${controllerName}.spec.ts`), content, 'utf8');
     }
 

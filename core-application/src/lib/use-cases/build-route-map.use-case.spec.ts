@@ -113,6 +113,24 @@ describe('BuildRouteMapUseCase', () => {
       .rejects.toThrow("run 'analyze' first");
   });
 
+  it('exact match → controllerFile populated from NestController.filePath', async () => {
+    const { mockFs, mockReader, mockWriter } = makeMocks();
+    const useCase = new BuildRouteMapUseCase(mockFs, mockReader, mockWriter);
+    const result = await useCase.execute({ backendPath: 'test-backend' });
+    const entry = result.entries.find(
+      (e) => e.httpCall.method === 'GET' && e.httpCall.urlPattern === '/api/products',
+    );
+    expect(entry?.controllerFile).toBe('src/products/products.controller.ts');
+  });
+
+  it('no match (confidence: none) → controllerFile is undefined', async () => {
+    const { mockFs, mockReader, mockWriter } = makeMocks();
+    const useCase = new BuildRouteMapUseCase(mockFs, mockReader, mockWriter);
+    const result = await useCase.execute({ backendPath: 'test-backend' });
+    const entry = result.entries.find((e) => e.httpCall.method === 'PUT');
+    expect(entry?.controllerFile).toBeUndefined();
+  });
+
   it('produces empty entries when no angular services have httpCalls', async () => {
     const emptyInventory: ComponentInventory = {
       ...stubInventory,

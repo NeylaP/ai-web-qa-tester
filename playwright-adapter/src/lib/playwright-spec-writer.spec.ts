@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { PlaywrightSpecWriter } from './playwright-spec-writer';
-import type { TestSuite } from '@ai-web-qa-tester/core-domain';
+import type { TestSuite, ControllerSetup } from '@ai-web-qa-tester/core-domain';
 
 let tmpDir: string;
 
@@ -73,6 +73,86 @@ describe('PlaywrightSpecWriter', () => {
     const content = fs.readFileSync(path.join(outputDir, 'ProductsController.spec.ts'), 'utf8');
     expect(content).toContain('"name":"Widget"');
     expect(content).not.toContain('{ data: {} }');
+  });
+
+  it('controllerSetups present → beforeAll/afterAll generated', async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-writer-'));
+    const outputDir = path.join(tmpDir, 'tests');
+    const setup: ControllerSetup = {
+      setupEndpoint: '/api/products',
+      setupMethod: 'POST',
+      setupBody: { name: 'Widget' },
+      idPath: 'id',
+      teardownEndpoint: '/api/products',
+    };
+    const suite: TestSuite = {
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      entries: [
+        { title: 'GET /api/products — exact', method: 'GET', endpoint: '/api/products', expectedStatus: 200, confidence: 'exact', skipped: false, controllerName: 'ProductsController' },
+      ],
+      controllerSetups: { ProductsController: setup },
+    };
+
+    await new PlaywrightSpecWriter().write(suite, tmpDir, outputDir);
+
+    const content = fs.readFileSync(path.join(outputDir, 'ProductsController.spec.ts'), 'utf8');
+    expect(content).toContain('let _createdId');
+    expect(content).toContain('test.beforeAll(');
+    expect(content).toContain('test.afterAll(');
+    expect(content).toContain("request.post('/api/products'");
+    expect(content).toContain('request.delete(`/api/products/${_createdId}`)');
+    expect(content).toContain('_createdId = setupBody.id');
+  });
+
+  it('uniqueFields in setup → timestamp suffix in beforeAll body', async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-writer-'));
+    const outputDir = path.join(tmpDir, 'tests');
+    const setup: ControllerSetup = {
+      setupEndpoint: '/api/products',
+      setupMethod: 'POST',
+      setupBody: { name: 'Widget', price: 9.99 },
+      uniqueFields: ['name'],
+      idPath: 'id',
+      teardownEndpoint: '/api/products',
+    };
+    const suite: TestSuite = {
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      entries: [
+        { title: 'GET /api/products — exact', method: 'GET', endpoint: '/api/products', expectedStatus: 200, confidence: 'exact', skipped: false, controllerName: 'ProductsController' },
+      ],
+      controllerSetups: { ProductsController: setup },
+    };
+
+    await new PlaywrightSpecWriter().write(suite, tmpDir, outputDir);
+
+    const content = fs.readFileSync(path.join(outputDir, 'ProductsController.spec.ts'), 'utf8');
+    expect(content).toContain('const _ts = Date.now()');
+    expect(content).toContain('name: `Widget_${_ts}`');
+    expect(content).toContain('9.99');
+  });
+
+  it('endpoint with path param + setup → URL uses _createdId template literal', async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-writer-'));
+    const outputDir = path.join(tmpDir, 'tests');
+    const setup: ControllerSetup = {
+      setupEndpoint: '/api/products',
+      setupMethod: 'POST',
+      setupBody: { name: 'Widget' },
+      idPath: 'id',
+      teardownEndpoint: '/api/products',
+    };
+    const suite: TestSuite = {
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      entries: [
+        { title: 'GET /api/products/:id — exact', method: 'GET', endpoint: '/api/products/:id', expectedStatus: 200, confidence: 'exact', skipped: false, controllerName: 'ProductsController' },
+      ],
+      controllerSetups: { ProductsController: setup },
+    };
+
+    await new PlaywrightSpecWriter().write(suite, tmpDir, outputDir);
+
+    const content = fs.readFileSync(path.join(outputDir, 'ProductsController.spec.ts'), 'utf8');
+    expect(content).toContain('request.get(`/api/products/${_createdId}`)');
   });
 
   it('responseAssertions present → assertion lines in test body', async () => {
