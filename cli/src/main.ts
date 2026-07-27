@@ -3,12 +3,12 @@ import 'dotenv/config';
 import * as path from 'node:path';
 import { Command } from 'commander';
 import {
-  ScanProjectUseCase, ScanError,
-  AnalyzeProjectUseCase, AnalysisError,
-  BuildRouteMapUseCase, RouteMapError,
-  GenerateTestsUseCase, GenerateTestsError,
-  RunTestsUseCase, RunTestsError,
-  ExportReportUseCase, ExportReportError,
+  ScanProjectUseCase,
+  AnalyzeProjectUseCase,
+  BuildRouteMapUseCase,
+  GenerateTestsUseCase,
+  RunTestsUseCase,
+  ExportReportUseCase,
 } from '@ai-web-qa-tester/core-application';
 import {
   NodeFileSystemAdapter,
@@ -102,7 +102,18 @@ program
   .name('qa-tester')
   .description('AI Web QA Tester CLI')
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  .version((require('../../package.json') as { version: string }).version);
+  .version((require('../../package.json') as { version: string }).version)
+  .option('--verbose', 'Show full stack traces on errors');
+
+function handleError(err: unknown, context: string, hint?: string): never {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(`\n[${context}] ${message}`);
+  if (hint) console.error(`  → ${hint}`);
+  if ((program.opts() as { verbose?: boolean }).verbose && err instanceof Error && err.stack) {
+    console.error('\nStack trace:\n' + err.stack);
+  }
+  process.exit(1);
+}
 
 program
   .command('scan')
@@ -124,12 +135,7 @@ program
       console.log(`Manifest written to: ${opts.backend}/.qa/project-manifest.json`);
       console.log(JSON.stringify(manifest, null, 2));
     } catch (err) {
-      if (err instanceof ScanError) {
-        console.error(`Scan failed: ${err.message}`);
-      } else {
-        console.error('Unexpected error:', err);
-      }
-      process.exit(1);
+      handleError(err, 'Scan', 'Check that --frontend and --backend paths exist and point to Node.js projects.');
     }
   });
 
@@ -161,12 +167,7 @@ program
       console.log(`Inventory written to: ${opts.backend}/.qa/component-inventory.json`);
       console.log(JSON.stringify(inventory, null, 2));
     } catch (err) {
-      if (err instanceof AnalysisError) {
-        console.error(`Analysis failed: ${err.message}`);
-      } else {
-        console.error('Unexpected error:', err);
-      }
-      process.exit(1);
+      handleError(err, 'Analyze', 'Check that both projects have a valid tsconfig.json.');
     }
   });
 
@@ -186,12 +187,7 @@ program
       console.log(`Route map written to: ${opts.backend}/.qa/route-map.json`);
       console.log(JSON.stringify(routeMap, null, 2));
     } catch (err) {
-      if (err instanceof RouteMapError) {
-        console.error(`Route map failed: ${err.message}`);
-      } else {
-        console.error('Unexpected error:', err);
-      }
-      process.exit(1);
+      handleError(err, 'Map', "Run 'qa-tester analyze' first to generate component-inventory.json.");
     }
   });
 
@@ -233,12 +229,7 @@ program
       console.log(`Spec files written to: ${outputDir}`);
       console.log(JSON.stringify(suite, null, 2));
     } catch (err) {
-      if (err instanceof GenerateTestsError) {
-        console.error(`Generate failed: ${err.message}`);
-      } else {
-        console.error('Unexpected error:', err);
-      }
-      process.exit(1);
+      handleError(err, 'Generate', "Run 'qa-tester map' first to generate route-map.json.");
     }
   });
 
@@ -278,12 +269,7 @@ program
       console.log(`\nTest report written to: ${opts.backend}/.qa/test-report.json`);
       console.log(JSON.stringify(report, null, 2));
     } catch (err) {
-      if (err instanceof RunTestsError) {
-        console.error(`Run failed: ${err.message}`);
-      } else {
-        console.error('Unexpected error:', err);
-      }
-      process.exit(1);
+      handleError(err, 'Run', 'Make sure the backend is accessible at --base-url, or use --start-command to launch it.');
     }
   });
 
@@ -305,12 +291,7 @@ program
       });
       console.log(`HTML report written to: ${outputPath}`);
     } catch (err) {
-      if (err instanceof ExportReportError) {
-        console.error(`Report failed: ${err.message}`);
-      } else {
-        console.error('Unexpected error:', err);
-      }
-      process.exit(1);
+      handleError(err, 'Report', "Run 'qa-tester run' first to generate test-report.json.");
     }
   });
 
@@ -449,8 +430,7 @@ program
 
       if (failed > 0) process.exit(1);
     } catch (err) {
-      console.error(`\nPipeline failed: ${err instanceof Error ? err.message : String(err)}`);
-      process.exit(1);
+      handleError(err, 'Pipeline');
     }
   });
 
