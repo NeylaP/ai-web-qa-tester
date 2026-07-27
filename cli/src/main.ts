@@ -87,6 +87,15 @@ async function resolveAuthToken(opts: {
   return undefined;
 }
 
+async function callCleanState(url: string, token?: string): Promise<void> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(url, { method: 'POST', headers });
+  if (!res.ok) {
+    throw new Error(`clean-state failed: POST ${url} responded with ${res.status} ${res.statusText}`);
+  }
+}
+
 const program = new Command();
 
 program
@@ -243,7 +252,8 @@ program
   .option('--auth-token <token>', 'Bearer token for Authorization header (skips login flow)')
   .option('--auth-env <var>', 'read Bearer token from environment variable (e.g. QA_AUTH_TOKEN)')
   .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
-  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; authEnv?: string; originHeader?: string }) => {
+  .option('--clean-state <url>', 'POST to this URL to reset backend state before running tests')
+  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; authEnv?: string; originHeader?: string; cleanState?: string }) => {
     const useCase = new RunTestsUseCase(
       new NodeFileSystemAdapter(),
       new PlaywrightTestRunner(),
@@ -256,6 +266,7 @@ program
         authEnv: opts.authEnv,
         backendPath: opts.backend,
       });
+      if (opts.cleanState) await callCleanState(opts.cleanState, authToken);
       const report = await useCase.execute({
         backendPath: opts.backend,
         baseUrl: opts.baseUrl,
@@ -316,6 +327,7 @@ program
   .option('--auth-token <token>', 'Bearer token for Authorization header (skips login flow)')
   .option('--auth-env <var>', 'read Bearer token from environment variable (e.g. QA_AUTH_TOKEN)')
   .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
+  .option('--clean-state <url>', 'POST to this URL to reset backend state before running tests')
   .action(async (opts: {
     backend: string;
     baseUrl: string;
@@ -327,6 +339,7 @@ program
     authToken?: string;
     authEnv?: string;
     originHeader?: string;
+    cleanState?: string;
   }) => {
     const fs = new NodeFileSystemAdapter();
     const step = (n: number, label: string) => process.stdout.write(`[${n}/6] ${label}...`);
@@ -404,6 +417,12 @@ program
         authEnv: opts.authEnv,
         backendPath: opts.backend,
       });
+
+      if (opts.cleanState) {
+        process.stdout.write('Resetting backend state...');
+        await callCleanState(opts.cleanState, authToken);
+        process.stdout.write(' ok\n');
+      }
 
       step(5, 'Running tests');
       const report = await new RunTestsUseCase(fs, new PlaywrightTestRunner(), new NodeProcessManager())
