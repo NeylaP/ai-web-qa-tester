@@ -19,7 +19,7 @@
         "platform": "node",
         "outputPath": "dist/cli",
         "format": ["cjs"],
-        "bundle": false,
+        "bundle": true,
         "main": "cli/src/main.ts",
         "tsConfig": "cli/tsconfig.app.json",
         "assets": ["cli/src/assets"],
@@ -91,6 +91,14 @@
         "production": {
           "buildTarget": "cli:build:production"
         }
+      }
+    }
+  },
+    "publish": {
+      "dependsOn": ["build", "add-shebang"],
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm publish dist/cli --access public"
       }
     }
   },

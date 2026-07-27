@@ -7,13 +7,7 @@
             },
     "files":  [
                   "main.js",
-                  "bin/",
-                  "ai-orchestrator/",
-                  "cli/src/main.js",
-                  "core-application/",
-                  "core-domain/",
-                  "playwright-adapter/",
-                  "scanner/"
+                  "bin/"
               ],
     "keywords":  [
                      "qa",

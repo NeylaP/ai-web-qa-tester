@@ -102,7 +102,7 @@ program
   .name('qa-tester')
   .description('AI Web QA Tester CLI')
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  .version((require('../../package.json') as { version: string }).version)
+  .version((require('../package.json') as { version: string }).version)
   .option('--verbose', 'Show full stack traces on errors');
 
 function handleError(err: unknown, context: string, hint?: string): never {
