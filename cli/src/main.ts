@@ -27,6 +27,66 @@ import {
 import { PlaywrightSpecWriter, PlaywrightTestRunner, HtmlReportGenerator } from '@ai-web-qa-tester/playwright-adapter';
 import { AnthropicProvider, OpenAiProvider, AiEnricher } from '@ai-web-qa-tester/ai-orchestrator';
 
+interface AuthLoginConfig {
+  url: string;
+  body: Record<string, unknown>;
+  tokenPath: string;
+}
+
+interface AuthConfig {
+  type: 'bearer';
+  token?: string;
+  login?: AuthLoginConfig;
+}
+
+function getNestedValue(obj: unknown, dotPath: string): string | undefined {
+  const result = dotPath.split('.').reduce<unknown>((current, key) => {
+    if (current !== null && typeof current === 'object') {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
+  return result !== undefined && result !== null ? String(result) : undefined;
+}
+
+async function resolveAuthToken(opts: {
+  authToken?: string;
+  authEnv?: string;
+  backendPath: string;
+}): Promise<string | undefined> {
+  if (opts.authToken) return opts.authToken;
+  if (opts.authEnv) return process.env[opts.authEnv];
+
+  const fs = await import('node:fs');
+  const authConfigPath = path.join(path.resolve(opts.backendPath), '.qa', 'auth.json');
+  if (!fs.existsSync(authConfigPath)) return undefined;
+
+  const auth = JSON.parse(fs.readFileSync(authConfigPath, 'utf-8')) as AuthConfig;
+  if (auth.token) return auth.token;
+
+  if (auth.login) {
+    process.stdout.write(`Authenticating via POST ${auth.login.url}...`);
+    const res = await fetch(auth.login.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(auth.login.body),
+    });
+    if (!res.ok) {
+      throw new Error(`Login failed: ${res.status} ${res.statusText}`);
+    }
+    const body = (await res.json()) as unknown;
+    const tokenPath = auth.login.tokenPath ?? 'token';
+    const token = getNestedValue(body, tokenPath);
+    if (!token) {
+      throw new Error(`Login succeeded but token not found at path '${tokenPath}' in response`);
+    }
+    process.stdout.write(' ok\n');
+    return token;
+  }
+
+  return undefined;
+}
+
 const program = new Command();
 
 program
@@ -180,9 +240,10 @@ program
   .requiredOption('--base-url <url>', 'base URL where the server will listen (e.g. http://localhost:3000)')
   .option('--start-command <cmd>', 'command to start the backend (default: npx nx serve <project>)')
   .option('--skip-backend', 'skip starting the backend server (use when it is already running)')
-  .option('--auth-token <token>', 'Bearer token injected as Authorization header in every request')
+  .option('--auth-token <token>', 'Bearer token for Authorization header (skips login flow)')
+  .option('--auth-env <var>', 'read Bearer token from environment variable (e.g. QA_AUTH_TOKEN)')
   .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
-  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; originHeader?: string }) => {
+  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; authEnv?: string; originHeader?: string }) => {
     const useCase = new RunTestsUseCase(
       new NodeFileSystemAdapter(),
       new PlaywrightTestRunner(),
@@ -190,12 +251,17 @@ program
     );
 
     try {
+      const authToken = await resolveAuthToken({
+        authToken: opts.authToken,
+        authEnv: opts.authEnv,
+        backendPath: opts.backend,
+      });
       const report = await useCase.execute({
         backendPath: opts.backend,
         baseUrl: opts.baseUrl,
         startCommand: opts.startCommand,
         skipBackend: opts.skipBackend,
-        authToken: opts.authToken,
+        authToken,
         originHeader: opts.originHeader,
       });
       console.log(`\nTest report written to: ${opts.backend}/.qa/test-report.json`);
@@ -247,7 +313,8 @@ program
   .option('--start-command <cmd>', 'command to start the backend')
   .option('--constants-file <path>', 'path to Angular constants file (skips ts-morph and NestJS analysis)')
   .option('--skip-backend', 'skip starting the backend server (use when it is already running)')
-  .option('--auth-token <token>', 'Bearer token injected as Authorization header in every request')
+  .option('--auth-token <token>', 'Bearer token for Authorization header (skips login flow)')
+  .option('--auth-env <var>', 'read Bearer token from environment variable (e.g. QA_AUTH_TOKEN)')
   .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
   .action(async (opts: {
     backend: string;
@@ -258,6 +325,7 @@ program
     constantsFile?: string;
     skipBackend?: boolean;
     authToken?: string;
+    authEnv?: string;
     originHeader?: string;
   }) => {
     const fs = new NodeFileSystemAdapter();
@@ -331,6 +399,12 @@ program
         );
       }
 
+      const authToken = await resolveAuthToken({
+        authToken: opts.authToken,
+        authEnv: opts.authEnv,
+        backendPath: opts.backend,
+      });
+
       step(5, 'Running tests');
       const report = await new RunTestsUseCase(fs, new PlaywrightTestRunner(), new NodeProcessManager())
         .execute({
@@ -338,7 +412,7 @@ program
           baseUrl: opts.baseUrl,
           startCommand: opts.startCommand,
           skipBackend: opts.skipBackend,
-          authToken: opts.authToken,
+          authToken,
           originHeader: opts.originHeader,
         });
       ok();
