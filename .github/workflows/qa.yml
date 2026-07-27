@@ -23,6 +23,13 @@ jobs:
       - name: Install root dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Audit production dependencies
+        # Checks only runtime deps (--omit=dev). Fails on HIGH or CRITICAL vulns.
+        # The published CLI (cli/package.json) has no dependencies — only peerDependencies.
+        # All 37 workspace vulns are in devDependencies and do NOT affect end users.
+        # This step guards against future runtime dep additions introducing real vulns.
+        run: npm audit --audit-level=high --omit=dev
+
       - name: Install lab/backend dependencies
         run: npm install --prefix lab/backend
 

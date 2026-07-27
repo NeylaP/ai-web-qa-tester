@@ -89,5 +89,16 @@
       "style": "scss",
       "unitTestRunner": "vitest"
     }
+  },
+  "release": {
+    "projects": ["cli"],
+    "releaseTagPattern": "v{version}",
+    "changelog": {
+      "workspaceChangelog": false,
+      "projectChangelogs": true
+    },
+    "version": {
+      "conventionalCommits": true
+    }
   }
 }
