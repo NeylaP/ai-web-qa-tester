@@ -71,6 +71,7 @@ export class PlaywrightTestRunner implements TestRunnerPort {
       `import { defineConfig } from '@playwright/test';`,
       `export default defineConfig({`,
       `  testDir: ${JSON.stringify(path.resolve(input.testDir))},`,
+      `  timeout: ${input.testTimeout ?? 30_000},`,
       `  use: {`,
       ...useLines,
       `  },`,

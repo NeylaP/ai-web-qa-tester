@@ -10,6 +10,8 @@ export interface RunTestsInput {
   skipBackend?: boolean;
   authToken?: string;
   originHeader?: string;
+  startupTimeout?: number;
+  testTimeout?: number;
 }
 
 export class RunTestsError extends Error {
@@ -36,7 +38,7 @@ export class RunTestsUseCase {
       );
     }
 
-    const runnerInput = { testDir, baseUrl: input.baseUrl, outputPath, authToken: input.authToken, originHeader: input.originHeader };
+    const runnerInput = { testDir, baseUrl: input.baseUrl, outputPath, authToken: input.authToken, originHeader: input.originHeader, testTimeout: input.testTimeout };
 
     if (input.skipBackend) {
       return await this.runner.run(runnerInput);
@@ -46,7 +48,7 @@ export class RunTestsUseCase {
 
     try {
       await this.processManager.start(startCmd, input.backendPath);
-      await this.processManager.waitForReady(input.baseUrl, 120_000);
+      await this.processManager.waitForReady(input.baseUrl, input.startupTimeout ?? 120_000);
       return await this.runner.run(runnerInput);
     } finally {
       await this.processManager.stop();

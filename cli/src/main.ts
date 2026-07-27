@@ -244,7 +244,9 @@ program
   .option('--auth-env <var>', 'read Bearer token from environment variable (e.g. QA_AUTH_TOKEN)')
   .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
   .option('--clean-state <url>', 'POST to this URL to reset backend state before running tests')
-  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; authEnv?: string; originHeader?: string; cleanState?: string }) => {
+  .option('--startup-timeout <ms>', 'ms to wait for backend to start (default: 120000)')
+  .option('--test-timeout <ms>', 'ms per test (default: 30000)')
+  .action(async (opts: { backend: string; baseUrl: string; startCommand?: string; skipBackend?: boolean; authToken?: string; authEnv?: string; originHeader?: string; cleanState?: string; startupTimeout?: string; testTimeout?: string }) => {
     const useCase = new RunTestsUseCase(
       new NodeFileSystemAdapter(),
       new PlaywrightTestRunner(),
@@ -265,6 +267,8 @@ program
         skipBackend: opts.skipBackend,
         authToken,
         originHeader: opts.originHeader,
+        startupTimeout: opts.startupTimeout !== undefined ? parseInt(opts.startupTimeout, 10) : undefined,
+        testTimeout: opts.testTimeout !== undefined ? parseInt(opts.testTimeout, 10) : undefined,
       });
       console.log(`\nTest report written to: ${opts.backend}/.qa/test-report.json`);
       console.log(JSON.stringify(report, null, 2));
@@ -309,6 +313,8 @@ program
   .option('--auth-env <var>', 'read Bearer token from environment variable (e.g. QA_AUTH_TOKEN)')
   .option('--origin-header <url>', 'value sent as origin_dev header (required for multi-tenant backends)')
   .option('--clean-state <url>', 'POST to this URL to reset backend state before running tests')
+  .option('--startup-timeout <ms>', 'ms to wait for backend to start (default: 120000)')
+  .option('--test-timeout <ms>', 'ms per test (default: 30000)')
   .action(async (opts: {
     backend: string;
     baseUrl: string;
@@ -321,6 +327,8 @@ program
     authEnv?: string;
     originHeader?: string;
     cleanState?: string;
+    startupTimeout?: string;
+    testTimeout?: string;
   }) => {
     const fs = new NodeFileSystemAdapter();
     const step = (n: number, label: string) => process.stdout.write(`[${n}/6] ${label}...`);
@@ -414,6 +422,8 @@ program
           skipBackend: opts.skipBackend,
           authToken,
           originHeader: opts.originHeader,
+          startupTimeout: opts.startupTimeout !== undefined ? parseInt(opts.startupTimeout, 10) : undefined,
+          testTimeout: opts.testTimeout !== undefined ? parseInt(opts.testTimeout, 10) : undefined,
         });
       ok();
 

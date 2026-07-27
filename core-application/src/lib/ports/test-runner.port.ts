@@ -6,6 +6,7 @@ export interface TestRunnerInput {
   outputPath: string;
   authToken?: string;
   originHeader?: string;
+  testTimeout?: number;
 }
 
 export interface TestRunnerPort {
