@@ -27,6 +27,9 @@ jobs:
       - name: Add shebang and bin wrapper
         run: npx nx run cli:add-shebang
 
+      - name: Copy package metadata to dist
+        run: cp cli/package.json dist/cli/package.json
+
       - name: Publish to npm
         run: npm publish dist/cli --access public
         env:
