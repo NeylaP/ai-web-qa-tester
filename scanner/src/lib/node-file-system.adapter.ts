@@ -17,4 +17,20 @@ export class NodeFileSystemAdapter implements FileSystemPort {
   readFile(p: string): string {
     return fs.readFileSync(p, 'utf-8');
   }
+
+  writeFile(p: string, content: string): void {
+    fs.writeFileSync(p, content, 'utf-8');
+  }
+
+  listFiles(dir: string): string[] {
+    try {
+      return fs.readdirSync(dir);
+    } catch {
+      return [];
+    }
+  }
+
+  mkdir(dir: string): void {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 }

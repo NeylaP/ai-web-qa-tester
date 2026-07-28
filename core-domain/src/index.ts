@@ -13,4 +13,4 @@ export type {
 export type { MatchConfidence, RouteMapEntry, RouteMap } from './lib/route-map';
 export type { TestSpec, TestSuite, ControllerSetup } from './lib/test-spec';
 export type { AiProvider } from './lib/ai-provider';
-export type { TestResultStatus, TestResult, TestReport } from './lib/test-report';
+export type { TestResultStatus, TestResult, TestDelta, TestReport } from './lib/test-report';

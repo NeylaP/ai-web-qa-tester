@@ -9,6 +9,13 @@ export interface TestResult {
   error?: string;
 }
 
+export interface TestDelta {
+  previousRun: string;
+  newFailures: string[];
+  fixed: string[];
+  newSkipped: string[];
+}
+
 export interface TestReport {
   generatedAt: string;
   baseUrl: string;
@@ -19,4 +26,5 @@ export interface TestReport {
     skipped: number;
   };
   results: TestResult[];
+  delta?: TestDelta;
 }

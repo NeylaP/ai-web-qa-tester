@@ -282,7 +282,9 @@ program
   .description('Generate an HTML report from a test-report.json')
   .requiredOption('--backend <path>', 'path to NestJS backend project')
   .option('--output <path>', 'output path for the HTML file (default: <backend>/.qa/test-report.html)')
-  .action(async (opts: { backend: string; output?: string }) => {
+  .option('--report-title <title>', 'custom title shown in the HTML report header')
+  .option('--report-logo <url>', 'URL of a logo image to display in the HTML report header')
+  .action(async (opts: { backend: string; output?: string; reportTitle?: string; reportLogo?: string }) => {
     const useCase = new ExportReportUseCase(
       new NodeFileSystemAdapter(),
       new HtmlReportGenerator(),
@@ -292,6 +294,8 @@ program
       const outputPath = useCase.execute({
         backendPath: opts.backend,
         outputPath: opts.output,
+        title: opts.reportTitle,
+        logoUrl: opts.reportLogo,
       });
       console.log(`HTML report written to: ${outputPath}`);
     } catch (err) {
@@ -315,6 +319,8 @@ program
   .option('--clean-state <url>', 'POST to this URL to reset backend state before running tests')
   .option('--startup-timeout <ms>', 'ms to wait for backend to start (default: 120000)')
   .option('--test-timeout <ms>', 'ms per test (default: 30000)')
+  .option('--report-title <title>', 'custom title shown in the HTML report header')
+  .option('--report-logo <url>', 'URL of a logo image to display in the HTML report header')
   .action(async (opts: {
     backend: string;
     baseUrl: string;
@@ -329,6 +335,8 @@ program
     cleanState?: string;
     startupTimeout?: string;
     testTimeout?: string;
+    reportTitle?: string;
+    reportLogo?: string;
   }) => {
     const fs = new NodeFileSystemAdapter();
     const step = (n: number, label: string) => process.stdout.write(`[${n}/6] ${label}...`);
@@ -429,7 +437,7 @@ program
 
       step(6, 'Generating HTML report');
       const htmlPath = new ExportReportUseCase(fs, new HtmlReportGenerator())
-        .execute({ backendPath: opts.backend });
+        .execute({ backendPath: opts.backend, title: opts.reportTitle, logoUrl: opts.reportLogo });
       ok();
 
       const { passed, failed, skipped, total } = report.summary;

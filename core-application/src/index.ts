@@ -20,6 +20,6 @@ export type { TestRunnerInput, TestRunnerPort } from './lib/ports/test-runner.po
 export type { ProcessManagerPort } from './lib/ports/process-manager.port';
 export { RunTestsUseCase, RunTestsError } from './lib/use-cases/run-tests.use-case';
 export type { RunTestsInput } from './lib/use-cases/run-tests.use-case';
-export type { HtmlReportPort } from './lib/ports/html-report.port';
+export type { HtmlReportPort, ReportOptions } from './lib/ports/html-report.port';
 export { ExportReportUseCase, ExportReportError } from './lib/use-cases/export-report.use-case';
 export type { ExportReportInput } from './lib/use-cases/export-report.use-case';
