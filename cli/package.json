@@ -1,28 +1,28 @@
 {
-    "name":  "@npmoncada/ai-web-qa-tester",
-    "version":  "0.1.3",
-    "description":  "AI-powered QA test generator for Angular + NestJS / Laravel projects",
-    "bin":  {
-                "qa-tester":  "bin/qa-tester"
-            },
-    "files":  [
-                  "main.js",
-                  "bin/"
-              ],
-    "keywords":  [
-                     "qa",
-                     "testing",
-                     "angular",
-                     "playwright",
-                     "nestjs",
-                     "ai",
-                     "automation"
-                 ],
-    "license":  "MIT",
-    "peerDependencies":  {
-                             "@playwright/test":  "\u003e=1.40.0"
-                         },
-    "engines":  {
-                    "node":  "\u003e=18.0.0"
-                }
+  "name": "@npmoncada/ai-web-qa-tester",
+  "version": "0.2.0",
+  "description": "AI-powered QA test generator for Angular + NestJS / Laravel projects",
+  "bin": {
+    "qa-tester": "bin/qa-tester"
+  },
+  "files": [
+    "main.js",
+    "bin/"
+  ],
+  "keywords": [
+    "qa",
+    "testing",
+    "angular",
+    "playwright",
+    "nestjs",
+    "ai",
+    "automation"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@playwright/test": ">=1.40.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
