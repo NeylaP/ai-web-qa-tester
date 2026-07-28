@@ -92,8 +92,7 @@
           "buildTarget": "cli:build:production"
         }
       }
-    }
-  },
+    },
     "publish": {
       "dependsOn": ["build", "add-shebang"],
       "executor": "nx:run-commands",
