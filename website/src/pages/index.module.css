@@ -1,0 +1,90 @@
+.heroBanner {
+  padding: 5rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.installBlock {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  margin: 1.5rem auto;
+  display: inline-block;
+  max-width: 90%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.installBlock code {
+  color: #e2e8f0;
+  background: none;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.features {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+  width: 100%;
+}
+
+.featureCol {
+  margin-bottom: 1.5rem;
+}
+
+.featureEmoji {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.howItWorks {
+  padding: 3rem 0 4rem;
+  background: var(--ifm-color-emphasis-100);
+}
+
+.pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.pipelineStep {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--ifm-color-primary);
+  color: white;
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.pipelineStep:not(:last-child)::after {
+  content: '→';
+  color: var(--ifm-color-emphasis-500);
+  margin-left: 0.5rem;
+  background: none;
+  padding: 0;
+}
+
+.stepNumber {
+  opacity: 0.7;
+  font-size: 0.75rem;
+}
+
+.stepLabel {
+  font-size: 0.9rem;
+}
