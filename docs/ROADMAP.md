@@ -1,7 +1,28 @@
 # Roadmap hacia producción — ai-web-qa-tester
 
-Estado actual: **POC funcional en entorno controlado**  
+Estado actual: **MVP completo — listo para primer cliente**  
 Objetivo: **producto vendible a equipos Angular + NestJS**
+
+---
+
+## Resumen de estado (al 2026-07-29)
+
+| Prioridad | Item | Estado |
+|-----------|------|--------|
+| P1.1 | Autenticación Bearer JWT + auto-login | ✅ implementado |
+| P1.2 | Angular analyzer con proyecto real | ✅ verificado (51 HTTP calls en ta-jobs-frontend) |
+| P1.3 | Fix DEP0190 (shell: false) | ✅ implementado |
+| P1.4 | Vulnerabilidades npm | ✅ 0 vulnerabilidades en producción |
+| P1.5 | npm publish como paquete instalable | ✅ v0.2.0 publicado en npm |
+| P2.1 | Assertions con AI + source del controller | ✅ implementado |
+| P2.2 | beforeAll/afterAll para aislamiento de tests | ✅ implementado |
+| P2.3 | Mensajes de error comprensibles + --verbose | ✅ implementado |
+| P2.4 | HTML report con historial, delta y dark mode | ✅ implementado |
+| P2.5 | Timeouts configurables | ✅ implementado |
+| P3.2 | Sitio de documentación (Docusaurus) | ❌ pendiente |
+| P3.3 | Video demo | ❌ pendiente |
+| P3.4 | Semver + CHANGELOG automático | ✅ nx release configurado |
+| P3.5 | Telemetría opt-in | ❌ pendiente |
 
 ---
 
@@ -348,16 +369,15 @@ Con 2 developers (P1 y P2 en paralelo):
 
 ### Hito mínimo para el primer cliente de pago
 
-Para el **primer cliente real** (no piloto gratuito) necesitás al menos:
-- ✅ P1.1 Autenticación
-- ✅ P1.2 Angular analyzer validado con su proyecto
-- ✅ P1.5 npm publish (o instalación simplificada)
-- ✅ P2.1 Assertions que no sean solo status codes
-- ✅ P3.4 Semver (para no romperles nada sin aviso)
+**✅ ALCANZADO** — todos los requisitos técnicos para el primer cliente están implementados:
 
-**Eso es ~8-11 días de desarrollo + el tiempo de validación con el cliente.**
+- ✅ P1.1 Autenticación Bearer JWT + auto-login via `.qa/auth.json`
+- ✅ P1.2 Angular analyzer validado con proyecto real (51 HTTP calls detectadas)
+- ✅ P1.5 npm publish — `npx @npmoncada/ai-web-qa-tester@latest pipeline ...`
+- ✅ P2.1 Assertions con AI + source del controller
+- ✅ P3.4 Semver + CHANGELOG automático con nx release
 
-El resto (docs, video, telemetría) pueden venir en paralelo o después del primer contrato.
+**Lo que queda (P3.2/P3.3/P3.5) acelera la adopción pero no bloquea el primer cliente.**
 
 ---
 
