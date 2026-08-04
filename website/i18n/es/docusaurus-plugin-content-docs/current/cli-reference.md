@@ -63,4 +63,4 @@ qa-tester pipeline \
 
 ---
 
-Para la referencia completa de cada comando individual, ver la [versión en inglés](../cli-reference).
+Para la referencia completa de cada comando individual, ver la versión en inglés de esta misma página.

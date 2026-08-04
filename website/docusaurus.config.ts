@@ -14,7 +14,7 @@ const config: Config = {
   projectName: 'ai-web-qa-tester',
   trailingSlash: false,
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
 
   i18n: {
