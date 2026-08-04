@@ -28,6 +28,9 @@
   "engines": {
     "node": ">=18.0"
   },
+  "overrides": {
+    "webpack": "5.94.0"
+  },
   "browserslist": {
     "production": [">0.5%", "not dead", "not op_mini all"],
     "development": [
