@@ -1,8 +1,12 @@
 # ai-web-qa-tester
 
 [![QA Pipeline](https://github.com/NeylaP/ai-web-qa-tester/actions/workflows/qa.yml/badge.svg)](https://github.com/NeylaP/ai-web-qa-tester/actions/workflows/qa.yml)
+[![npm](https://img.shields.io/npm/v/@npmoncada/ai-web-qa-tester?color=6366f1)](https://www.npmjs.com/package/@npmoncada/ai-web-qa-tester)
+[![Documentation](https://img.shields.io/badge/docs-neylap.github.io-6366f1)](https://neylap.github.io/ai-web-qa-tester/)
 
 AI-powered QA automation tool for Angular + NestJS projects. Scans your source code, maps Angular HTTP calls to NestJS endpoints, generates Playwright test specs (optionally enriched by an LLM), runs them against a live server, and produces an HTML report — all from a single command.
+
+**[Full documentation →](https://neylap.github.io/ai-web-qa-tester/)**
 
 ---
 
@@ -77,6 +81,17 @@ The project follows **Hexagonal (Clean) Architecture** inside an Nx monorepo:
 ---
 
 ## Installation
+
+```bash
+# Use without installing (recommended)
+npx @npmoncada/ai-web-qa-tester pipeline --help
+
+# Or install globally
+npm install -g @npmoncada/ai-web-qa-tester
+qa-tester pipeline --help
+```
+
+**From source** (for development):
 
 ```bash
 git clone https://github.com/NeylaP/ai-web-qa-tester.git
@@ -228,6 +243,7 @@ ai-web-qa-tester/
 ├── playwright-adapter/   # Spec writer, test runner, HTML report
 ├── ai-orchestrator/      # Anthropic + OpenAI providers
 ├── cli/                  # qa-tester CLI binary
+├── website/              # Docusaurus docs site (EN + ES) → neylap.github.io/ai-web-qa-tester
 ├── lab/
 │   └── backend/          # Sample NestJS project used for testing
 │       ├── src/
@@ -235,7 +251,8 @@ ai-web-qa-tester/
 │       └── .qa/          # Generated artifacts (route-map, specs, report)
 └── .github/
     └── workflows/
-        └── qa.yml        # GitHub Actions QA pipeline
+        ├── qa.yml        # GitHub Actions QA pipeline
+        └── docs.yml      # GitHub Pages docs deploy
 ```
 
 ---
