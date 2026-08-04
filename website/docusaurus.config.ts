@@ -7,10 +7,10 @@ const config: Config = {
   tagline: 'AI-powered QA automation for Angular + NestJS projects',
   favicon: 'img/favicon.ico',
 
-  url: 'https://npmoncada.github.io',
+  url: 'https://neylap.github.io',
   baseUrl: '/ai-web-qa-tester/',
 
-  organizationName: 'npmoncada',
+  organizationName: 'NeylaP',
   projectName: 'ai-web-qa-tester',
   trailingSlash: false,
 
