@@ -26,6 +26,7 @@ import {
 } from '@ai-web-qa-tester/scanner';
 import { PlaywrightSpecWriter, PlaywrightTestRunner, HtmlReportGenerator } from '@ai-web-qa-tester/playwright-adapter';
 import { AnthropicProvider, OpenAiProvider, AiEnricher } from '@ai-web-qa-tester/ai-orchestrator';
+import { DashboardDb } from '@ai-web-qa-tester/dashboard-db';
 
 interface AuthLoginConfig {
   url: string;
@@ -270,6 +271,11 @@ program
         startupTimeout: opts.startupTimeout !== undefined ? parseInt(opts.startupTimeout, 10) : undefined,
         testTimeout: opts.testTimeout !== undefined ? parseInt(opts.testTimeout, 10) : undefined,
       });
+      try {
+        const db = new DashboardDb();
+        db.saveRun(path.basename(path.resolve(opts.backend)), path.resolve(opts.backend), report);
+        db.close();
+      } catch { /* dashboard DB is optional — never block the run */ }
       console.log(`\nTest report written to: ${opts.backend}/.qa/test-report.json`);
       console.log(JSON.stringify(report, null, 2));
     } catch (err) {
@@ -434,6 +440,12 @@ program
           testTimeout: opts.testTimeout !== undefined ? parseInt(opts.testTimeout, 10) : undefined,
         });
       ok();
+
+      try {
+        const db = new DashboardDb();
+        db.saveRun(path.basename(path.resolve(opts.backend)), path.resolve(opts.backend), report);
+        db.close();
+      } catch { /* dashboard DB is optional — never block the pipeline */ }
 
       step(6, 'Generating HTML report');
       const htmlPath = new ExportReportUseCase(fs, new HtmlReportGenerator())
