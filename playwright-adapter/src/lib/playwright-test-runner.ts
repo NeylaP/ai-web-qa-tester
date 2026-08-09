@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { TestReport, TestResult } from '@ai-web-qa-tester/core-domain';
+import type { TestReport, TestResult, TestAttachment } from '@ai-web-qa-tester/core-domain';
 import type { TestRunnerPort, TestRunnerInput } from '@ai-web-qa-tester/core-application';
 
 interface PwReport {
@@ -23,10 +23,17 @@ interface PwTest {
   results: PwResult[];
 }
 
+interface PwAttachment {
+  name: string;
+  contentType: string;
+  path?: string;
+}
+
 interface PwResult {
   status: 'passed' | 'failed' | 'skipped' | 'timedOut' | 'interrupted';
   duration: number;
   error?: { message: string };
+  attachments?: PwAttachment[];
 }
 
 export class PlaywrightTestRunner implements TestRunnerPort {
@@ -67,13 +74,18 @@ export class PlaywrightTestRunner implements TestRunnerPort {
       useLines.push(`    extraHTTPHeaders: ${JSON.stringify(extraHeaders)},`);
     }
 
+    const artifactsDir = path.resolve(path.join(qaDir, 'playwright-artifacts'));
     const content = [
       `import { defineConfig } from '@playwright/test';`,
       `export default defineConfig({`,
       `  testDir: ${JSON.stringify(path.resolve(input.testDir))},`,
       `  timeout: ${input.testTimeout ?? 30_000},`,
+      `  outputDir: ${JSON.stringify(artifactsDir)},`,
       `  use: {`,
       ...useLines,
+      `    screenshot: 'on',`,
+      `    video: 'retain-on-failure',`,
+      `    trace: 'retain-on-failure',`,
       `  },`,
       `  reporter: [['json', { outputFile: ${JSON.stringify(path.resolve(rawReportPath))} }]],`,
       `});`,
@@ -133,6 +145,19 @@ export class PlaywrightTestRunner implements TestRunnerPort {
               ? 'skipped'
               : 'failed';
 
+        const attachments: TestAttachment[] = (result?.attachments ?? [])
+          .filter(a => a.path)
+          .map(a => ({
+            name: a.name,
+            contentType: a.contentType,
+            path: a.path as string,
+            type: a.contentType.startsWith('video/')
+              ? 'video'
+              : a.name === 'trace'
+                ? 'trace'
+                : 'screenshot',
+          }));
+
         results.push({
           title: spec.title,
           endpoint: spec.title.match(/\s(\/\S+)/)?.[1] ?? '',
@@ -140,6 +165,7 @@ export class PlaywrightTestRunner implements TestRunnerPort {
           status,
           durationMs: result?.duration ?? 0,
           ...(result?.error ? { error: result.error.message } : {}),
+          ...(attachments.length > 0 ? { attachments } : {}),
         });
       }
       this.collectSpecs(suite.suites ?? [], results);

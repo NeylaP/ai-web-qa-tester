@@ -1,5 +1,12 @@
 export type TestResultStatus = 'passed' | 'failed' | 'skipped';
 
+export interface TestAttachment {
+  type: 'screenshot' | 'video' | 'trace';
+  name: string;
+  path: string;
+  contentType: string;
+}
+
 export interface TestResult {
   title: string;
   endpoint: string;
@@ -7,6 +14,7 @@ export interface TestResult {
   status: TestResultStatus;
   durationMs: number;
   error?: string;
+  attachments?: TestAttachment[];
 }
 
 export interface TestDelta {
