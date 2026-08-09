@@ -21,7 +21,8 @@
       "@ai-web-qa-tester/scanner": ["scanner/src/index.ts"],
       "@ai-web-qa-tester/playwright-adapter": ["playwright-adapter/src/index.ts"],
       "@ai-web-qa-tester/ai-orchestrator": ["ai-orchestrator/src/index.ts"],
-      "@ai-web-qa-tester/dashboard-db": ["dashboard-db/src/index.ts"]
+      "@ai-web-qa-tester/dashboard-db": ["dashboard-db/src/index.ts"],
+      "@ai-web-qa-tester/dashboard-server": ["dashboard-server/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

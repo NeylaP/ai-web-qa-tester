@@ -27,6 +27,7 @@ import {
 import { PlaywrightSpecWriter, PlaywrightTestRunner, HtmlReportGenerator } from '@ai-web-qa-tester/playwright-adapter';
 import { AnthropicProvider, OpenAiProvider, AiEnricher } from '@ai-web-qa-tester/ai-orchestrator';
 import { DashboardDb } from '@ai-web-qa-tester/dashboard-db';
+import { createServer } from '@ai-web-qa-tester/dashboard-server';
 
 interface AuthLoginConfig {
   url: string;
@@ -461,6 +462,26 @@ program
       if (failed > 0) process.exit(1);
     } catch (err) {
       handleError(err, 'Pipeline');
+    }
+  });
+
+program
+  .command('serve')
+  .description('Start the QA Tester dashboard web UI')
+  .option('--port <number>', 'port to listen on (default: 4000)', '4000')
+  .option('--open', 'open the browser automatically')
+  .action(async (opts: { port: string; open?: boolean }) => {
+    const port = parseInt(opts.port, 10);
+    try {
+      await createServer(port);
+      if (opts.open) {
+        const { exec } = await import('child_process');
+        const url = `http://localhost:${port}`;
+        const cmd = process.platform === 'win32' ? `start ${url}` : process.platform === 'darwin' ? `open ${url}` : `xdg-open ${url}`;
+        exec(cmd);
+      }
+    } catch (err) {
+      handleError(err, 'Serve', `Make sure port ${port} is not already in use.`);
     }
   });
 
